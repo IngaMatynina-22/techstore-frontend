@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Stack, TextField } from '@mui/material'
+import { IconButton, Stack, TextField } from '@mui/material'
+import { Search } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
@@ -45,27 +46,30 @@ export function AuditLogsPage() {
   return (
     <>
       <PageHeader title="Журнал аудиту" description="Дії користувачів у системі" />
-      <Stack  spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           label="Тип сутності"
           value={draftType}
           onChange={(e) => setDraftType(e.target.value)}
-          sx={{ minWidth: 180 }}
+          onKeyDown={(e) => e.key === 'Enter' && setMany({ entityType: draftType, entityId: draftId, page: 1 })}
+          sx={{ minWidth: 180, flex: '1 1 160px' }}
         />
         <TextField
           size="small"
           label="ID сутності"
           value={draftId}
           onChange={(e) => setDraftId(e.target.value)}
-          sx={{ minWidth: 140 }}
+          onKeyDown={(e) => e.key === 'Enter' && setMany({ entityType: draftType, entityId: draftId, page: 1 })}
+          sx={{ minWidth: 120, flex: '0 1 140px' }}
         />
-        <Button
-          variant="outlined"
+        <IconButton
+          color="primary"
+          aria-label="Знайти"
           onClick={() => setMany({ entityType: draftType, entityId: draftId, page: 1 })}
         >
-          Застосувати
-        </Button>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

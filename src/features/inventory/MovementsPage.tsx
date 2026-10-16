@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
   Link,
   MenuItem,
@@ -16,6 +17,7 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
+import { Search } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
@@ -193,8 +195,8 @@ export function MovementsPage() {
           </Stack>
         }
       />
-      <Stack  spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Склад</InputLabel>
           <Select
             label="Склад"
@@ -217,6 +219,7 @@ export function MovementsPage() {
           onKeyDown={(e) =>
             e.key === 'Enter' && setMany({ sku: draftSku, productName: draftProductName, page: 1 })
           }
+          sx={{ minWidth: 120, flex: '1 1 100px' }}
         />
         <TextField
           size="small"
@@ -226,8 +229,9 @@ export function MovementsPage() {
           onKeyDown={(e) =>
             e.key === 'Enter' && setMany({ sku: draftSku, productName: draftProductName, page: 1 })
           }
+          sx={{ minWidth: 150, flex: '1 1 140px' }}
         />
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel>Тип руху</InputLabel>
           <Select
             label="Тип руху"
@@ -242,12 +246,13 @@ export function MovementsPage() {
             ))}
           </Select>
         </FormControl>
-        <Button
-          variant="outlined"
+        <IconButton
+          color="primary"
+          aria-label="Знайти"
           onClick={() => setMany({ sku: draftSku, productName: draftProductName, page: 1 })}
         >
-          Застосувати
-        </Button>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

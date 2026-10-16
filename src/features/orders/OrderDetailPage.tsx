@@ -22,9 +22,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
 import { useNavigate, useParams } from 'react-router-dom'
+import { X } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { StatusChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { ordersApi } from '@/api/orders.api'
@@ -124,9 +126,9 @@ export function OrderDetailPage() {
               </Button>
             )}
             {canCancel && (
-              <Button variant="outlined" color="error" onClick={() => setAction('cancel')}>
-                Скасувати
-              </Button>
+              <IconAction title="Скасувати" color="error" onClick={() => setAction('cancel')}>
+                <X size={18} />
+              </IconAction>
             )}
             <Button variant="text" onClick={() => navigate('/returns/new', { state: { orderId } })}>
               Повернення

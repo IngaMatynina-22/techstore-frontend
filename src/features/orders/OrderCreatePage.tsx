@@ -27,6 +27,7 @@ import { PageHeader } from '@/components/feedback/PageHeader'
 import { getErrorMessage, newIdempotencyKey } from '@/api/client'
 import { ordersApi } from '@/api/orders.api'
 import { inventoryApi, warehousesApi } from '@/api/inventory.api'
+import { customerLabel, customersApi } from '@/api/customers.api'
 import type { DeliveryMethod } from '@/types/api'
 
 const schema = z.object({
@@ -55,7 +56,12 @@ export function OrderCreatePage() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const warehouseId = watch('warehouseId')
 
-  const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: warehousesApi.list })
+  const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: () => warehousesApi.list() })
+  const { data: customersPage } = useQuery({
+    queryKey: ['customers', 'order-create'],
+    queryFn: () => customersApi.list({ page: 1, pageSize: 200, includeInactive: false }),
+  })
+  const customers = customersPage?.items ?? []
   const { data: stock } = useQuery({
     queryKey: ['inventory-pick', warehouseId],
     queryFn: () => inventoryApi.list({ warehouseId, page: 1, pageSize: 200 }),
@@ -68,9 +74,9 @@ export function OrderCreatePage() {
         warehouseId: values.warehouseId,
         customerId: values.customerId ? Number(values.customerId) : undefined,
         deliveryMethod: values.deliveryMethod as DeliveryMethod,
-        comment: values.comment || undefined,
+        customerComment: values.comment || undefined,
         idempotencyKey,
-        items: values.items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
+        items: values.items.map((i) => ({ productVariantId: i.variantId, quantity: i.quantity })),
       }),
     onSuccess: (o) => {
       enqueueSnackbar('Замовлення створено', { variant: 'success' })
@@ -106,7 +112,29 @@ export function OrderCreatePage() {
                 </FormControl>
               )}
             />
-            <TextField size="small" label="ID клієнта (необовʼязково)" type="number" {...register('customerId')} />
+            <Controller
+              name="customerId"
+              control={control}
+              render={({ field }) => (
+                <FormControl size="small" sx={{ minWidth: 240 }}>
+                  <InputLabel>Клієнт</InputLabel>
+                  <Select
+                    label="Клієнт"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                  >
+                    <MenuItem value="">
+                      <em>Без клієнта</em>
+                    </MenuItem>
+                    {customers.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>
+                        {customerLabel(c)} · {c.email}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            />
             <Controller
               name="deliveryMethod"
               control={control}

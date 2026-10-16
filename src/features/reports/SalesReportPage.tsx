@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Alert, Box, CircularProgress, Paper, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -19,7 +20,7 @@ import { reportsApi } from '@/api/admin.api'
 import { fmtMoney, fmtNum, normalizePeriodSeries, periodRange, type ReportPeriod } from './reportUtils'
 
 export function SalesReportPage({ period }: { period: ReportPeriod }) {
-  const range = periodRange(period)
+  const range = useMemo(() => periodRange(period), [period])
   const salesQ = useQuery({
     queryKey: ['reports', 'sales', range],
     queryFn: () => reportsApi.sales(range),

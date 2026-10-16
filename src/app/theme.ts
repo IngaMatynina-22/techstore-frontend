@@ -61,7 +61,19 @@ export function createLightTheme() {
       ...shared.components,
       MuiCssBaseline: {
         styleOverrides: {
+          html: {
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#C4C4C4 #F0F0F0',
+          },
           body: { backgroundColor: '#F5F5F5', minHeight: '100vh' },
+          '*::-webkit-scrollbar': { width: 8, height: 8 },
+          '*::-webkit-scrollbar-track': { background: '#F0F0F0' },
+          '*::-webkit-scrollbar-thumb': {
+            background: '#C4C4C4',
+            borderRadius: 8,
+            '&:hover': { background: ACCENT },
+          },
+          '*::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
         },
       },
       MuiPaper: {
@@ -102,7 +114,19 @@ export function createDarkTheme() {
       ...shared.components,
       MuiCssBaseline: {
         styleOverrides: {
+          html: {
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#3A3A3A #1A1A1A',
+          },
           body: { backgroundColor: '#121212', minHeight: '100vh' },
+          '*::-webkit-scrollbar': { width: 8, height: 8 },
+          '*::-webkit-scrollbar-track': { background: '#1A1A1A' },
+          '*::-webkit-scrollbar-thumb': {
+            background: '#3A3A3A',
+            borderRadius: 8,
+            '&:hover': { background: ACCENT },
+          },
+          '*::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
         },
       },
       MuiPaper: {

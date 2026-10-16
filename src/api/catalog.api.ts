@@ -135,6 +135,20 @@ export const productsApi = {
   create: (body: Record<string, unknown>) => api.post<ProductDetails>('/api/products', body).then((r) => r.data),
   update: (id: number, body: Record<string, unknown>) => api.put(`/api/products/${id}`, body),
   deactivate: (id: number) => api.post(`/api/products/${id}/deactivate`),
+  activate: async (id: number) => {
+    const p = await productsApi.get(id)
+    return api.put(`/api/products/${id}`, {
+      name: p.name,
+      slug: p.slug,
+      description: p.description ?? null,
+      shortDescription: p.shortDescription ?? null,
+      imageUrl: p.imageUrl ?? null,
+      warrantyMonths: p.warrantyMonths ?? null,
+      categoryId: p.categoryId,
+      brandId: p.brandId ?? null,
+      isActive: true,
+    })
+  },
   addVariant: (id: number, body: ProductVariantInput) =>
     api.post<ProductVariant>(`/api/products/${id}/variants`, body).then((r) => r.data),
   updateVariant: (id: number, variantId: number, body: ProductVariantInput) =>
@@ -148,6 +162,14 @@ export const categoriesApi = {
   create: (body: Record<string, unknown>) => api.post<CategoryDetails>('/api/categories', body).then((r) => r.data),
   update: (id: number, body: Record<string, unknown>) => api.put(`/api/categories/${id}`, body),
   deactivate: (id: number) => api.post(`/api/categories/${id}/deactivate`),
+  activate: (r: CategoryListItem) =>
+    api.put(`/api/categories/${r.id}`, {
+      name: r.name,
+      slug: r.slug,
+      parentId: r.parentId ?? null,
+      sortOrder: r.sortOrder,
+      isActive: true,
+    }),
 }
 
 export const brandsApi = {
@@ -157,6 +179,16 @@ export const brandsApi = {
   create: (body: Record<string, unknown>) => api.post<BrandDetails>('/api/brands', body).then((r) => r.data),
   update: (id: number, body: Record<string, unknown>) => api.put(`/api/brands/${id}`, body),
   deactivate: (id: number) => api.post(`/api/brands/${id}/deactivate`),
+  activate: async (id: number) => {
+    const b = await brandsApi.get(id)
+    return api.put(`/api/brands/${id}`, {
+      name: b.name,
+      description: b.description ?? null,
+      logoUrl: b.logoUrl ?? null,
+      websiteUrl: b.websiteUrl ?? null,
+      isActive: true,
+    })
+  },
 }
 
 export const attributesApi = {

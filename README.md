@@ -8,7 +8,7 @@ Vite, React 19, TypeScript, React Router, Axios, TanStack Query, React Hook Form
 
 ## Запуск
 
-1. Запустіть backend (за замовчуванням proxy → `http://localhost:5000`; змінити через `VITE_API_PROXY`).
+1. Запустіть backend (proxy за замовчуванням → `http://127.0.0.1:5184`; змінити через `VITE_API_PROXY`).
 2. У frontend:
 
 ```bash

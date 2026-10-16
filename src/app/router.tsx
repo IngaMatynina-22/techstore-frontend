@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from '@/app/layouts/AdminLayout'
-import { RequireAuth, RequireAdmin } from '@/app/guards'
+import { CustomerLayout } from '@/app/layouts/CustomerLayout'
+import { RequireStaff, RequireCustomer, RequireAdmin } from '@/app/guards'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -20,6 +21,7 @@ import { CountDetailPage } from '@/features/inventory/CountDetailPage'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage'
 import { OrderCreatePage } from '@/features/orders/OrderCreatePage'
+import { CustomersPage } from '@/features/customers/CustomersPage'
 import { SuppliersPage } from '@/features/purchasing/SuppliersPage'
 import { SupplierDetailPage } from '@/features/purchasing/SupplierDetailPage'
 import { SupplierFormPage } from '@/features/purchasing/SupplierFormPage'
@@ -35,7 +37,18 @@ import { ImportBatchPage } from '@/features/imports-exports/ImportBatchPage'
 import { ExportPage } from '@/features/imports-exports/ExportPage'
 import { SettingsPage } from '@/features/administration/SettingsPage'
 import { AuditLogsPage } from '@/features/administration/AuditLogsPage'
+import { UsersPage } from '@/features/administration/UsersPage'
 import { SystemPage } from '@/features/administration/SystemPage'
+import { CustomerHomePage } from '@/features/customer/CustomerHomePage'
+import { CustomerOrdersPage } from '@/features/customer/CustomerOrdersPage'
+import { CustomerOrderDetailPage } from '@/features/customer/CustomerOrderDetailPage'
+import { CustomerReturnsPage } from '@/features/customer/CustomerReturnsPage'
+import { CustomerReturnDetailPage } from '@/features/customer/CustomerReturnDetailPage'
+import { CustomerReturnCreatePage } from '@/features/customer/CustomerReturnCreatePage'
+import { CustomerCatalogPage } from '@/features/customer/CustomerCatalogPage'
+import { CustomerProductPage } from '@/features/customer/CustomerProductPage'
+import { CustomerCartPage } from '@/features/customer/CustomerCartPage'
+import { CartProvider } from '@/features/customer/cart'
 
 export function AppRouter() {
   return (
@@ -43,7 +56,7 @@ export function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
 
-      <Route element={<RequireAuth />}>
+      <Route element={<RequireStaff />}>
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
 
@@ -69,6 +82,7 @@ export function AppRouter() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/new" element={<OrderCreatePage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
+          <Route path="customers" element={<CustomersPage />} />
 
           <Route path="purchasing/suppliers" element={<SuppliersPage />} />
           <Route path="purchasing/suppliers/new" element={<SupplierFormPage />} />
@@ -94,8 +108,30 @@ export function AppRouter() {
           <Route path="admin/settings" element={<SettingsPage />} />
           <Route path="admin/system" element={<SystemPage />} />
           <Route element={<RequireAdmin />}>
+            <Route path="admin/users" element={<UsersPage />} />
             <Route path="admin/audit-logs" element={<AuditLogsPage />} />
           </Route>
+        </Route>
+      </Route>
+
+      <Route element={<RequireCustomer />}>
+        <Route
+          path="/app"
+          element={
+            <CartProvider>
+              <CustomerLayout />
+            </CartProvider>
+          }
+        >
+          <Route index element={<CustomerHomePage />} />
+          <Route path="catalog" element={<CustomerCatalogPage />} />
+          <Route path="catalog/:id" element={<CustomerProductPage />} />
+          <Route path="cart" element={<CustomerCartPage />} />
+          <Route path="orders" element={<CustomerOrdersPage />} />
+          <Route path="orders/:id" element={<CustomerOrderDetailPage />} />
+          <Route path="returns" element={<CustomerReturnsPage />} />
+          <Route path="returns/new" element={<CustomerReturnCreatePage />} />
+          <Route path="returns/:id" element={<CustomerReturnDetailPage />} />
         </Route>
       </Route>
 

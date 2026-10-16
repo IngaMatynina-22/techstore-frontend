@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   Button,
   FormControl,
+  IconButton,
   InputLabel,
   Link,
   MenuItem,
@@ -12,11 +13,12 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
-import { Plus } from 'lucide-react'
+import { Ban, CheckCircle, Plus, Search } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { BoolChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useTablePrefs } from '@/hooks/useTablePrefs'
 import { getErrorMessage } from '@/api/client'
@@ -69,6 +71,15 @@ export function ProductsPage() {
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
+  const activate = useMutation({
+    mutationFn: (id: number) => productsApi.activate(id),
+    onSuccess: () => {
+      enqueueSnackbar('Товар активовано', { variant: 'success' })
+      void qc.invalidateQueries({ queryKey: ['products'] })
+    },
+    onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
+  })
+
   const columns: Column<ProductListItem>[] = [
     { id: 'name', label: 'Назва', render: (r) => <Link component={RouterLink} to={`/catalog/products/${r.id}`}>{r.name}</Link> },
     { id: 'cat', label: 'Категорія', render: (r) => r.categoryName },
@@ -90,13 +101,22 @@ export function ProductsPage() {
     {
       id: 'actions',
       label: '',
-      width: 120,
+      width: 56,
       render: (r) =>
         r.isActive ? (
-          <Button size="small" color="error" onClick={() => setDeactivateId(r.id)}>
-            Деактивувати
-          </Button>
-        ) : null,
+          <IconAction title="Деактивувати" color="error" onClick={() => setDeactivateId(r.id)}>
+            <Ban size={16} />
+          </IconAction>
+        ) : (
+          <IconAction
+            title="Активувати"
+            color="success"
+            disabled={activate.isPending}
+            onClick={() => activate.mutate(r.id)}
+          >
+            <CheckCircle size={16} />
+          </IconAction>
+        ),
     },
   ]
 
@@ -111,16 +131,16 @@ export function ProductsPage() {
           </Button>
         }
       />
-      <Stack  spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           label="Пошук"
           value={draftSearch}
           onChange={(e) => setDraftSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && setMany({ search: draftSearch, page: 1 })}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: 180, flex: '1 1 160px' }}
         />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Категорія</InputLabel>
           <Select label="Категорія" value={categoryId} onChange={(e) => setMany({ categoryId: e.target.value, page: 1 })}>
             <MenuItem value="">Усі</MenuItem>
@@ -129,7 +149,7 @@ export function ProductsPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Бренд</InputLabel>
           <Select label="Бренд" value={brandId} onChange={(e) => setMany({ brandId: e.target.value, page: 1 })}>
             <MenuItem value="">Усі</MenuItem>
@@ -138,7 +158,7 @@ export function ProductsPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Статус</InputLabel>
           <Select label="Статус" value={isActive} onChange={(e) => setMany({ isActive: e.target.value, page: 1 })}>
             <MenuItem value="">Усі</MenuItem>
@@ -146,7 +166,7 @@ export function ProductsPage() {
             <MenuItem value="false">Неактивні</MenuItem>
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Сортування</InputLabel>
           <Select label="Сортування" value={sortBy} onChange={(e) => setMany({ sortBy: e.target.value, page: 1 })}>
             <MenuItem value="createdAtDesc">Нові спочатку</MenuItem>
@@ -156,7 +176,9 @@ export function ProductsPage() {
             <MenuItem value="priceDesc">Ціна ↓</MenuItem>
           </Select>
         </FormControl>
-        <Button variant="outlined" onClick={() => setMany({ search: draftSearch, page: 1 })}>Застосувати</Button>
+        <IconButton color="primary" aria-label="Знайти" onClick={() => setMany({ search: draftSearch, page: 1 })}>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

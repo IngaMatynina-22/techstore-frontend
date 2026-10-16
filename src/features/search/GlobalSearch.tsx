@@ -119,7 +119,14 @@ export function GlobalSearch() {
           />
         </Box>
       )}
-      renderInput={(params) => (
+      renderInput={(params) => {
+        // #region agent log
+        const inputSlot = params.slotProps?.input as { ref?: unknown } | undefined
+        const hasInputPropsRef = !!(params as { InputProps?: { ref?: unknown } }).InputProps?.ref
+        const hasSlotRef = !!inputSlot?.ref
+        fetch('http://127.0.0.1:7583/ingest/da68f0e7-cfae-419a-88ca-2a64f3dcc6e4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7481c3'},body:JSON.stringify({sessionId:'7481c3',runId:'pre-fix',hypothesisId:'E',location:'GlobalSearch.tsx:renderInput',message:'Autocomplete input ref check',data:{hasInputPropsRef,hasSlotRef,hasInputProps:!!(params as {InputProps?:unknown}).InputProps,hasSlotPropsInput:!!params.slotProps?.input},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return (
         <TextField
           {...params}
           placeholder="Пошук товарів, замовлень, постачальників…"
@@ -139,7 +146,8 @@ export function GlobalSearch() {
             },
           }}
         />
-      )}
+        )
+      }}
       renderGroup={(params) => (
         <li key={params.key}>
           <Typography

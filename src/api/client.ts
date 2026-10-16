@@ -16,12 +16,19 @@ export function setUnauthorizedHandler(handler: () => void) {
 const TITLE_UA: Record<string, string> = {
   conflict: 'Конфлікт даних. Оновіть сторінку та спробуйте знову.',
   concurrency_conflict: 'Дані змінилися іншим користувачем. Оновіть і повторіть.',
-  insufficient_stock: 'Недостатньо залишку на складі для цієї операції.',
+  insufficient_stock: 'Недостатньо залишку на складі. Оберіть інший склад або зменшіть кількість.',
   idempotency_conflict: 'Повторний запит із тим самим ключем, але іншими даними.',
   invalid_transition: 'Цей перехід статусу зараз недозволений.',
   validation: 'Перевірте введені дані.',
   not_found: 'Запис не знайдено.',
   forbidden: 'Недостатньо прав для цієї дії.',
+}
+
+const DETAIL_UA: Record<string, string> = {
+  'Insufficient available stock to reserve.':
+    'Недостатньо доступного залишку для резерву. Оберіть інший склад або зменшіть кількість.',
+  'Insufficient available stock.': 'Недостатньо доступного залишку на складі.',
+  'Insufficient available stock at source warehouse.': 'Недостатньо залишку на складі-джерелі.',
 }
 
 export function getErrorMessage(error: unknown, fallback = 'Помилка запиту'): string {
@@ -34,10 +41,11 @@ export function getErrorMessage(error: unknown, fallback = 'Помилка за�
   }
   const data = ax.response.data
   if (!data) return fallback
-  if (typeof data === 'string') return data
-  if (data.detail) return data.detail
-  if (data.message) return data.message
+  if (typeof data === 'string') return DETAIL_UA[data] ?? data
   if (data.title && TITLE_UA[data.title]) return TITLE_UA[data.title]
+  if (data.detail && DETAIL_UA[data.detail]) return DETAIL_UA[data.detail]
+  if (data.detail) return data.detail
+  if (data.message) return DETAIL_UA[data.message] ?? data.message
   if (data.title && data.title !== 'One or more validation errors occurred.') return data.title
   if (data.errors) {
     const first = Object.values(data.errors).flat()[0]

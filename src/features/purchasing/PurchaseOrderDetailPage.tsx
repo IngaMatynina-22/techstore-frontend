@@ -20,9 +20,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
 import { Link as RouterLink, useParams } from 'react-router-dom'
+import { X } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { StatusChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage, newIdempotencyKey } from '@/api/client'
 import { PO_STATUS, purchaseOrdersApi } from '@/api/purchasing.api'
@@ -122,9 +124,9 @@ export function PurchaseOrderDetailPage() {
               </Button>
             )}
             {canCancel && (
-              <Button variant="outlined" color="error" onClick={() => setConfirmAction('cancel')}>
-                Скасувати
-              </Button>
+              <IconAction title="Скасувати" color="error" onClick={() => setConfirmAction('cancel')}>
+                <X size={18} />
+              </IconAction>
             )}
           </Stack>
         }

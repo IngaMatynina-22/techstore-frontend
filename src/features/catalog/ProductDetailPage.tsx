@@ -23,9 +23,11 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { enqueueSnackbar } from 'notistack'
+import { Ban, CheckCircle, Pencil } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { BoolChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { productsApi, type ProductVariantInput } from '@/api/catalog.api'
@@ -71,6 +73,15 @@ export function ProductDetailPage() {
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
+  const activate = useMutation({
+    mutationFn: () => productsApi.activate(productId),
+    onSuccess: () => {
+      enqueueSnackbar('Товар активовано', { variant: 'success' })
+      void qc.invalidateQueries({ queryKey: ['product', productId] })
+    },
+    onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
+  })
+
   const addVariant = useMutation({
     mutationFn: (body: ProductVariantInput) => productsApi.addVariant(productId, body),
     onSuccess: () => {
@@ -107,14 +118,23 @@ export function ProductDetailPage() {
           { label: data.name },
         ]}
         actions={
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" component={RouterLink} to={`/catalog/products/${productId}/edit`}>
-              Редагувати
-            </Button>
-            {data.isActive && (
-              <Button color="error" variant="outlined" onClick={() => setConfirmDeactivate(true)}>
-                Деактивувати
-              </Button>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+            <IconAction title="Редагувати" component={RouterLink} to={`/catalog/products/${productId}/edit`}>
+              <Pencil size={18} />
+            </IconAction>
+            {data.isActive ? (
+              <IconAction title="Деактивувати" color="error" onClick={() => setConfirmDeactivate(true)}>
+                <Ban size={18} />
+              </IconAction>
+            ) : (
+              <IconAction
+                title="Активувати"
+                color="success"
+                disabled={activate.isPending}
+                onClick={() => activate.mutate()}
+              >
+                <CheckCircle size={18} />
+              </IconAction>
             )}
           </Stack>
         }

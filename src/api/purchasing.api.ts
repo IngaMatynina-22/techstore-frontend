@@ -88,8 +88,26 @@ export const suppliersApi = {
   remove: (id: number) => api.delete(`/api/suppliers/${id}`),
   products: (id: number) =>
     api.get<SupplierProduct[]>(`/api/suppliers/${id}/products`).then((r) => r.data),
-  setProducts: (id: number, body: Record<string, unknown>[]) =>
-    api.put(`/api/suppliers/${id}/products`, body),
+  upsertProduct: (
+    id: number,
+    body: {
+      variantId: number
+      supplierSku?: string | null
+      supplyPrice: number
+      deliveryDays?: number | null
+      isPreferred: boolean
+    },
+  ) => api.put(`/api/suppliers/${id}/products`, body),
+  setProducts: (
+    id: number,
+    items: {
+      variantId: number
+      supplierSku?: string | null
+      supplyPrice: number
+      deliveryDays?: number | null
+      isPreferred: boolean
+    }[],
+  ) => Promise.all(items.map((item) => api.put(`/api/suppliers/${id}/products`, item))),
 }
 
 export const purchaseOrdersApi = {

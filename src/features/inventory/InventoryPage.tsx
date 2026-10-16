@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
   Link,
   MenuItem,
@@ -16,9 +17,11 @@ import {
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
+import { ArrowLeftRight, Package, Search, SlidersHorizontal } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { StatusChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useTablePrefs } from '@/hooks/useTablePrefs'
 import { getErrorMessage } from '@/api/client'
@@ -152,22 +155,22 @@ export function InventoryPage() {
     {
       id: 'actions',
       label: '',
-      width: 220,
+      width: 120,
       render: (r) => (
-        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-          <Button size="small" onClick={() => openThreshold(r)}>
-            Поріг
-          </Button>
-          <Button size="small" component={RouterLink} to={`/catalog/products/${r.productId}`}>
-            Товар
-          </Button>
-          <Button
-            size="small"
+        <Stack direction="row" spacing={0.25}>
+          <IconAction title="Поріг" onClick={() => openThreshold(r)}>
+            <SlidersHorizontal size={16} />
+          </IconAction>
+          <IconAction title="Товар" component={RouterLink} to={`/catalog/products/${r.productId}`}>
+            <Package size={16} />
+          </IconAction>
+          <IconAction
+            title="Рухи"
             component={RouterLink}
             to={`/inventory/movements?warehouseId=${r.warehouseId}&sku=${encodeURIComponent(r.sku)}`}
           >
-            Рухи
-          </Button>
+            <ArrowLeftRight size={16} />
+          </IconAction>
         </Stack>
       ),
     },
@@ -185,8 +188,8 @@ export function InventoryPage() {
   return (
     <>
       <PageHeader title={title} description={description} />
-      <Stack  spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Склад</InputLabel>
           <Select
             label="Склад"
@@ -207,7 +210,7 @@ export function InventoryPage() {
           value={draftSku}
           onChange={(e) => setDraftSku(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-          sx={{ minWidth: 140 }}
+          sx={{ minWidth: 120, flex: '1 1 100px' }}
         />
         <TextField
           size="small"
@@ -215,9 +218,9 @@ export function InventoryPage() {
           value={draftProductName}
           onChange={(e) => setDraftProductName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: 150, flex: '1 1 140px' }}
         />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Категорія</InputLabel>
           <Select label="Категорія" value={categoryId} onChange={(e) => setMany({ categoryId: e.target.value, page: 1 })}>
             <MenuItem value="">Усі</MenuItem>
@@ -228,7 +231,7 @@ export function InventoryPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Бренд</InputLabel>
           <Select label="Бренд" value={brandId} onChange={(e) => setMany({ brandId: e.target.value, page: 1 })}>
             <MenuItem value="">Усі</MenuItem>
@@ -241,7 +244,7 @@ export function InventoryPage() {
         </FormControl>
         {mode === 'all' && (
           <>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
               <InputLabel>Низький залишок</InputLabel>
               <Select
                 label="Низький залишок"
@@ -252,7 +255,7 @@ export function InventoryPage() {
                 <MenuItem value="true">Лише низький</MenuItem>
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
               <InputLabel>Немає в наявності</InputLabel>
               <Select
                 label="Немає в наявності"
@@ -265,9 +268,9 @@ export function InventoryPage() {
             </FormControl>
           </>
         )}
-        <Button variant="outlined" onClick={applyFilters}>
-          Застосувати
-        </Button>
+        <IconButton color="primary" aria-label="Знайти" onClick={applyFilters}>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

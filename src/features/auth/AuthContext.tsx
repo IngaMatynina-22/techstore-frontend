@@ -17,12 +17,18 @@ interface AuthState {
   loading: boolean
   isStaff: boolean
   isAdmin: boolean
+  isCustomer: boolean
   login: (body: LoginRequest) => Promise<void>
   logout: () => Promise<void>
   refresh: () => Promise<void>
+  homePath: string
 }
 
 const AuthContext = createContext<AuthState | null>(null)
+
+function rolesOf(user: UserDto | null) {
+  return user?.roles ?? []
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null)
@@ -66,15 +72,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate])
 
   const value = useMemo<AuthState>(() => {
-    const roles = user?.roles ?? []
+    const roles = rolesOf(user)
+    const isStaff = roles.includes('Admin') || roles.includes('Manager')
+    const isAdmin = roles.includes('Admin')
+    const isCustomer = roles.includes('Customer')
     return {
       user,
       loading,
-      isStaff: roles.includes('Admin') || roles.includes('Manager'),
-      isAdmin: roles.includes('Admin'),
+      isStaff,
+      isAdmin,
+      isCustomer,
       login,
       logout,
       refresh,
+      homePath: isStaff ? '/' : isCustomer ? '/app' : '/login',
     }
   }, [user, loading, login, logout, refresh])
 

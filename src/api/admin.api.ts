@@ -119,6 +119,43 @@ export const auditApi = {
     api.get<PagedResult<AuditLog>>('/api/audit-logs', { params }).then((r) => r.data),
 }
 
+export interface AdminUser {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  isActive: boolean
+  roles: string[]
+  createdAt: string
+}
+
+export const usersApi = {
+  list: (params?: Record<string, unknown>) =>
+    api.get<PagedResult<AdminUser>>('/api/users', { params }).then((r) => r.data),
+  get: (id: number) => api.get<AdminUser>(`/api/users/${id}`).then((r) => r.data),
+  create: (body: {
+    email: string
+    password: string
+    firstName: string
+    lastName: string
+    roles: string[]
+  }) => api.post<AdminUser>('/api/users', body).then((r) => r.data),
+  update: (
+    id: number,
+    body: {
+      email: string
+      firstName: string
+      lastName: string
+      isActive: boolean
+      roles: string[]
+      newPassword?: string | null
+    },
+  ) => api.put<AdminUser>(`/api/users/${id}`, body).then((r) => r.data),
+  deactivate: (id: number) => api.post(`/api/users/${id}/deactivate`),
+  activate: (id: number) => api.post(`/api/users/${id}/activate`),
+  remove: (id: number) => api.delete(`/api/users/${id}`),
+}
+
 export const healthApi = {
   live: () => api.get('/health/live').then((r) => r.data),
   ready: () => api.get('/health/ready').then((r) => r.data),

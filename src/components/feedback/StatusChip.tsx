@@ -21,6 +21,7 @@ const colorMap: Record<string, 'default' | 'success' | 'warning' | 'error' | 'in
   Closed: 'default',
   InProgress: 'warning',
   InReview: 'warning',
+  PendingReview: 'warning',
   Applied: 'success',
   low: 'warning',
   out: 'error',

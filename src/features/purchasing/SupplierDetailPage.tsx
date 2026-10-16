@@ -19,9 +19,10 @@ import {
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
-import { Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { BoolChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { suppliersApi, type SupplierProduct } from '@/api/purchasing.api'
@@ -87,13 +88,15 @@ export function SupplierDetailPage() {
     mutationFn: () =>
       suppliersApi.setProducts(
         supplierId,
-        rows.map((r) => ({
-          variantId: r.variantId,
-          supplierSku: r.supplierSku || null,
-          supplyPrice: r.supplyPrice,
-          deliveryDays: r.deliveryDays ? Number(r.deliveryDays) : null,
-          isPreferred: r.isPreferred,
-        })),
+        rows
+          .filter((r) => r.variantId > 0)
+          .map((r) => ({
+            variantId: r.variantId,
+            supplierSku: r.supplierSku || null,
+            supplyPrice: r.supplyPrice,
+            deliveryDays: r.deliveryDays ? Number(r.deliveryDays) : null,
+            isPreferred: r.isPreferred,
+          })),
       ),
     onSuccess: () => {
       enqueueSnackbar('Позиції постачальника збережено', { variant: 'success' })
@@ -115,10 +118,10 @@ export function SupplierDetailPage() {
           { label: supplier.name },
         ]}
         actions={
-          <Stack direction="row" spacing={1}>
-            <Button component={RouterLink} to={`/purchasing/suppliers/${supplierId}/edit`} variant="outlined">
-              Редагувати
-            </Button>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <IconAction title="Редагувати" component={RouterLink} to={`/purchasing/suppliers/${supplierId}/edit`}>
+              <Pencil size={18} />
+            </IconAction>
             <Button variant="contained" onClick={() => navigate('/purchasing/purchase-orders/new', { state: { supplierId } })}>
               Закупівля
             </Button>

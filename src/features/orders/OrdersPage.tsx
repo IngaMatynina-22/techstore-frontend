@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material'
+import { Button, FormControl, IconButton, InputLabel, MenuItem, Select, Stack, TextField } from '@mui/material'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { StatusChip } from '@/components/feedback/StatusChip'
@@ -82,16 +82,16 @@ export function OrdersPage() {
           </Button>
         }
       />
-      <Stack  spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           label="Номер замовлення"
           value={draftNumber}
           onChange={(e) => setDraftNumber(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && setMany({ orderNumber: draftNumber, page: 1 })}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: 160, flex: '1 1 140px' }}
         />
-        <FormControl size="small" sx={{ minWidth: 160 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Статус</InputLabel>
           <Select label="Статус" value={statusCode} onChange={(e) => setMany({ statusCode: e.target.value, page: 1 })}>
             {STATUS_OPTIONS.map((o) => (
@@ -117,9 +117,9 @@ export function OrdersPage() {
           onChange={(e) => setMany({ toUtc: e.target.value ? `${e.target.value}:00.000Z` : null, page: 1 })}
           slotProps={{ inputLabel: { shrink: true } }}
         />
-        <Button variant="outlined" onClick={() => setMany({ orderNumber: draftNumber, page: 1 })}>
-          Застосувати
-        </Button>
+        <IconButton color="primary" aria-label="Знайти" onClick={() => setMany({ orderNumber: draftNumber, page: 1 })}>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

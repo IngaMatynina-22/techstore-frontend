@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import {
   Button,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -10,6 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { X } from 'lucide-react'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Controller, useFieldArray, useForm, type Control, type UseFormRegister } from 'react-hook-form'
@@ -36,7 +38,7 @@ const createSchema = z.object({
   brandId: z.number().nullable().optional(),
   shortDescription: z.string().optional(),
   description: z.string().optional(),
-  warrantyMonths: z.number().optional().nullable(),
+  warrantyMonths: z.number().int().min(0, 'Гарантія не може бути від’ємною').optional().nullable(),
   imageUrl: z.string().optional(),
   variants: z.array(variantSchema).min(1, 'Додайте хоча б один варіант'),
 })
@@ -98,7 +100,14 @@ function ProductFields({
       />
       <TextField label="Короткий опис" multiline {...register('shortDescription')} />
       <TextField label="Опис" multiline rows={3} {...register('description')} />
-      <TextField type="number" label="Гарантія (міс.)" {...register('warrantyMonths', { valueAsNumber: true })} />
+      <TextField
+        type="number"
+        label="Гарантія (міс.)"
+        {...register('warrantyMonths', { valueAsNumber: true })}
+        error={!!errors.warrantyMonths}
+        helperText={errors.warrantyMonths?.message as string}
+        slotProps={{ htmlInput: { min: 0, step: 1 } }}
+      />
       <TextField label="URL зображення" {...register('imageUrl')} />
     </Stack>
   )
@@ -194,15 +203,50 @@ export function ProductFormPage() {
             />
             <Typography variant="subtitle1">Варіанти</Typography>
             {fields.map((f, i) => (
-              <Stack key={f.id} spacing={1} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start' }}>
-                <TextField size="small" label="SKU" {...createForm.register(`variants.${i}.sku`)} />
-                <TextField size="small" label="Назва" {...createForm.register(`variants.${i}.variantName`)} sx={{ flex: 1 }} />
-                <TextField size="small" type="number" label="Закуп." {...createForm.register(`variants.${i}.purchasePrice`, { valueAsNumber: true })} />
-                <TextField size="small" type="number" label="Продаж" {...createForm.register(`variants.${i}.sellingPrice`, { valueAsNumber: true })} />
-                {fields.length > 1 && <Button size="small" color="error" onClick={() => remove(i)}>×</Button>}
+              <Stack
+                key={f.id}
+                direction="row"
+                spacing={1.5}
+                sx={{ flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}
+              >
+                <TextField
+                  size="small"
+                  label="SKU"
+                  {...createForm.register(`variants.${i}.sku`)}
+                  sx={{ minWidth: 120, flex: '1 1 120px' }}
+                />
+                <TextField
+                  size="small"
+                  label="Назва"
+                  {...createForm.register(`variants.${i}.variantName`)}
+                  sx={{ minWidth: 140, flex: '2 1 160px' }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Закуп."
+                  {...createForm.register(`variants.${i}.purchasePrice`, { valueAsNumber: true })}
+                  sx={{ minWidth: 110, flex: '1 1 110px' }}
+                  slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Продаж"
+                  {...createForm.register(`variants.${i}.sellingPrice`, { valueAsNumber: true })}
+                  sx={{ minWidth: 110, flex: '1 1 110px' }}
+                  slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+                />
+                {fields.length > 1 && (
+                  <IconButton size="small" color="error" aria-label="Видалити варіант" onClick={() => remove(i)}>
+                    <X size={16} />
+                  </IconButton>
+                )}
               </Stack>
             ))}
-            <Button size="small" onClick={() => append({ sku: '', variantName: '', purchasePrice: 0, sellingPrice: 0 })}>+ Варіант</Button>
+            <Button size="small" onClick={() => append({ sku: '', variantName: '', purchasePrice: 0, sellingPrice: 0 })}>
+              + Варіант
+            </Button>
             <Stack direction="row" spacing={1}>
               <Button type="submit" variant="contained" disabled={saveCreate.isPending}>Створити</Button>
               <Button component={RouterLink} to="/catalog/products">Скасувати</Button>

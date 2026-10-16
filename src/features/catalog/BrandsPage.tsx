@@ -13,11 +13,12 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { enqueueSnackbar } from 'notistack'
-import { Plus } from 'lucide-react'
+import { Ban, CheckCircle, Pencil, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { BoolChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { getErrorMessage } from '@/api/client'
 import { brandsApi, type BrandListItem } from '@/api/catalog.api'
 
@@ -73,6 +74,15 @@ export function BrandsPage() {
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
+  const activate = useMutation({
+    mutationFn: (id: number) => brandsApi.activate(id),
+    onSuccess: () => {
+      enqueueSnackbar('Бренд активовано', { variant: 'success' })
+      void qc.invalidateQueries({ queryKey: ['brands'] })
+    },
+    onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
+  })
+
   const columns: Column<BrandListItem>[] = [
     { id: 'name', label: 'Назва', render: (r) => r.name },
     { id: 'site', label: 'Сайт', render: (r) => r.websiteUrl ?? '—' },
@@ -81,11 +91,25 @@ export function BrandsPage() {
     {
       id: 'actions',
       label: '',
+      width: 88,
       render: (r) => (
-        <Stack direction="row" spacing={0.5}>
-          <Button size="small" onClick={() => openEdit(r)}>Редагувати</Button>
-          {r.isActive && (
-            <Button size="small" color="error" onClick={() => setDeactivateId(r.id)}>Деактивувати</Button>
+        <Stack direction="row" spacing={0.25}>
+          <IconAction title="Редагувати" onClick={() => openEdit(r)}>
+            <Pencil size={16} />
+          </IconAction>
+          {r.isActive ? (
+            <IconAction title="Деактивувати" color="error" onClick={() => setDeactivateId(r.id)}>
+              <Ban size={16} />
+            </IconAction>
+          ) : (
+            <IconAction
+              title="Активувати"
+              color="success"
+              disabled={activate.isPending}
+              onClick={() => activate.mutate(r.id)}
+            >
+              <CheckCircle size={16} />
+            </IconAction>
           )}
         </Stack>
       ),

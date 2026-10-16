@@ -20,9 +20,10 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { enqueueSnackbar } from 'notistack'
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
+import { IconAction } from '@/components/actions/IconAction'
 import { getErrorMessage } from '@/api/client'
 import { attributesApi, categoriesApi, type AttributeDefinition } from '@/api/catalog.api'
 import type { AttributeDataType } from '@/types/api'
@@ -108,9 +109,20 @@ export function AttributesPage() {
 
   const save = useMutation({
     mutationFn: async (v: FormValues) => {
-      const body = { ...v, options: v.dataType === 3 ? v.options : undefined }
-      if (editId) return attributesApi.update(editId, body)
-      return attributesApi.create(body)
+      const base = {
+        name: v.name,
+        code: v.code,
+        dataType: v.dataType,
+        unit: v.unit?.trim() || null,
+        isRequired: v.isRequired,
+        isFilterable: v.isFilterable,
+        sortOrder: v.sortOrder,
+        ...(v.dataType === 3
+          ? { options: (v.options ?? []).map((o) => o.value.trim()).filter(Boolean) }
+          : {}),
+      }
+      if (editId) return attributesApi.update(editId, base)
+      return attributesApi.create({ ...base, categoryId: v.categoryId })
     },
     onSuccess: () => {
       enqueueSnackbar(editId ? 'Збережено' : 'Характеристику створено', { variant: 'success' })
@@ -128,7 +140,16 @@ export function AttributesPage() {
     { id: 'cat', label: 'Категорія', render: (r) => r.categoryName },
     { id: 'type', label: 'Тип', render: (r) => typeLabel(r.dataType) },
     { id: 'req', label: "Обов'язк.", render: (r) => (r.isRequired ? 'Так' : 'Ні') },
-    { id: 'actions', label: '', render: (r) => <Button size="small" onClick={() => openEdit(r)}>Редагувати</Button> },
+    {
+      id: 'actions',
+      label: '',
+      width: 56,
+      render: (r) => (
+        <IconAction title="Редагувати" onClick={() => openEdit(r)}>
+          <Pencil size={16} />
+        </IconAction>
+      ),
+    },
   ]
 
   return (
@@ -166,14 +187,19 @@ export function AttributesPage() {
             <Controller
               name="categoryId"
               control={form.control}
-              render={({ field }) => (
-                <FormControl fullWidth>
+              render={({ field, fieldState }) => (
+                <FormControl fullWidth error={!!fieldState.error}>
                   <InputLabel>Категорія</InputLabel>
                   <Select label="Категорія" value={field.value || ''} onChange={(e) => field.onChange(Number(e.target.value))}>
                     {categories.map((c) => (
                       <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
                     ))}
                   </Select>
+                  {fieldState.error && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                      {fieldState.error.message}
+                    </Typography>
+                  )}
                 </FormControl>
               )}
             />

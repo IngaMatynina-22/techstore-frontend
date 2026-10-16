@@ -13,6 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { Save, ClipboardCheck, Check, X } from 'lucide-react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
@@ -20,6 +21,7 @@ import { PageHeader } from '@/components/feedback/PageHeader'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { StatusChip } from '@/components/feedback/StatusChip'
 import { QueryError } from '@/components/feedback/EmptyState'
+import { IconAction } from '@/components/actions/IconAction'
 import { getErrorMessage } from '@/api/client'
 import { countsApi } from '@/api/inventory.api'
 import type { InventoryCountStatus } from '@/types/api'
@@ -27,7 +29,7 @@ import type { InventoryCountStatus } from '@/types/api'
 const COUNT_STATUS: Record<InventoryCountStatus, { label: string; status: string }> = {
   0: { label: 'Чернетка', status: 'Draft' },
   1: { label: 'В процесі', status: 'InProgress' },
-  2: { label: 'На перевірці', status: 'InReview' },
+  2: { label: 'На перевірці', status: 'PendingReview' },
   3: { label: 'Застосовано', status: 'Applied' },
   4: { label: 'Скасовано', status: 'Cancelled' },
 }
@@ -56,7 +58,12 @@ export function CountDetailPage() {
   }, [data?.lines, data?.id])
 
   const statusInfo = data ? COUNT_STATUS[data.status as InventoryCountStatus] : null
-  const editable = data != null && data.status !== 3 && data.status !== 4
+  const s = data?.status
+  const canEditActuals = s === 0 || s === 1
+  const canSubmitReview = s === 0 || s === 1
+  const canApply = s === 2
+  const canCancel = s != null && s !== 3 && s !== 4
+  const showActions = canEditActuals || canSubmitReview || canApply || canCancel
 
   const saveActuals = useMutation({
     mutationFn: () => {
@@ -70,6 +77,9 @@ export function CountDetailPage() {
           return { lineId: line.id, actualQuantity }
         })
         .filter(Boolean) as { lineId: number; actualQuantity: number }[]
+      // #region agent log
+      fetch('http://127.0.0.1:7583/ingest/da68f0e7-cfae-419a-88ca-2a64f3dcc6e4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7481c3'},body:JSON.stringify({sessionId:'7481c3',runId:'pre-fix',hypothesisId:'B',location:'CountDetailPage.tsx:saveActuals',message:'setActuals payload',data:{sessionId,totalLines:data.lines.length,sentLines:lines.length,skippedEmpty:data.lines.length-lines.length,lineIds:lines.map(l=>l.lineId)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (!lines.length) throw new Error('Заповніть хоча б один фактичний залишок')
       return countsApi.setActuals(sessionId, lines)
     },
@@ -81,13 +91,29 @@ export function CountDetailPage() {
   })
 
   const submitReview = useMutation({
-    mutationFn: () => countsApi.submitReview(sessionId),
+    mutationFn: () => {
+      // #region agent log
+      const serverMissing = data?.lines.filter((l) => l.actualQuantity == null).map((l) => ({ id: l.id, sku: l.sku, server: l.actualQuantity, local: actuals[l.id] ?? null })) ?? []
+      const localEmpty = data?.lines.filter((l) => !(actuals[l.id]?.trim())).map((l) => l.id) ?? []
+      const localFilledServerNull = serverMissing.filter((x) => x.local != null && String(x.local).trim() !== '')
+      fetch('http://127.0.0.1:7583/ingest/da68f0e7-cfae-419a-88ca-2a64f3dcc6e4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7481c3'},body:JSON.stringify({sessionId:'7481c3',runId:'pre-fix',hypothesisId:'A',location:'CountDetailPage.tsx:submitReview',message:'submit-review preflight',data:{sessionId,status:data?.status,totalLines:data?.lines.length,serverMissingCount:serverMissing.length,localEmptyCount:localEmpty.length,localFilledButServerNull:localFilledServerNull.length,sample:localFilledServerNull.slice(0,5)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return countsApi.submitReview(sessionId)
+    },
     onSuccess: () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7583/ingest/da68f0e7-cfae-419a-88ca-2a64f3dcc6e4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7481c3'},body:JSON.stringify({sessionId:'7481c3',runId:'pre-fix',hypothesisId:'D',location:'CountDetailPage.tsx:submitReview:onSuccess',message:'submit-review succeeded',data:{sessionId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       enqueueSnackbar('Надіслано на перевірку', { variant: 'success' })
       setConfirmAction(null)
       void qc.invalidateQueries({ queryKey: ['inventory-count', sessionId] })
     },
-    onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
+    onError: (e) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7583/ingest/da68f0e7-cfae-419a-88ca-2a64f3dcc6e4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7481c3'},body:JSON.stringify({sessionId:'7481c3',runId:'pre-fix',hypothesisId:'A',location:'CountDetailPage.tsx:submitReview:onError',message:'submit-review failed',data:{sessionId,error:getErrorMessage(e)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      enqueueSnackbar(getErrorMessage(e), { variant: 'error' })
+    },
   })
 
   const apply = useMutation({
@@ -136,27 +162,39 @@ export function CountDetailPage() {
           { label: data.sessionNumber },
         ]}
         actions={
-          editable ? (
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-              <Button variant="outlined" disabled={pending} onClick={() => saveActuals.mutate()}>
-                Зберегти фактичні
-              </Button>
-              <Button variant="outlined" disabled={pending} onClick={() => setConfirmAction('submit')}>
-                На перевірку
-              </Button>
-              <Button variant="contained" disabled={pending} onClick={() => setConfirmAction('apply')}>
-                Застосувати
-              </Button>
-              <Button color="error" variant="outlined" disabled={pending} onClick={() => setConfirmAction('cancel')}>
-                Скасувати
-              </Button>
+          showActions ? (
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+              {canEditActuals && (
+                <IconAction title="Зберегти фактичні" disabled={pending} onClick={() => saveActuals.mutate()}>
+                  <Save size={18} />
+                </IconAction>
+              )}
+              {canSubmitReview && (
+                <IconAction title="На перевірку" disabled={pending} onClick={() => setConfirmAction('submit')}>
+                  <ClipboardCheck size={18} />
+                </IconAction>
+              )}
+              {canApply && (
+                <IconAction title="Застосувати" color="primary" disabled={pending} onClick={() => setConfirmAction('apply')}>
+                  <Check size={18} />
+                </IconAction>
+              )}
+              {canCancel && (
+                <IconAction title="Скасувати" color="error" disabled={pending} onClick={() => setConfirmAction('cancel')}>
+                  <X size={18} />
+                </IconAction>
+              )}
             </Stack>
           ) : undefined
         }
       />
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack spacing={3} sx={{ flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', alignItems: { sm: 'center' } }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={0}
+          sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}
+        >
           <BoxField label="Склад" value={data.warehouseName} />
           <BoxField label="Статус">
             {statusInfo ? <StatusChip label={statusInfo.label} status={statusInfo.status} /> : data.status}
@@ -166,7 +204,7 @@ export function CountDetailPage() {
           )}
           {data.notes && <BoxField label="Примітки" value={data.notes} />}
           {data.adjustmentsApplied && (
-            <Typography variant="body2" color="success.main">
+            <Typography variant="body2" color="success.main" sx={{ alignSelf: 'center' }}>
               Коригування застосовано
             </Typography>
           )}
@@ -190,7 +228,7 @@ export function CountDetailPage() {
                 <TableCell>{line.sku}</TableCell>
                 <TableCell align="right">{line.expectedQuantity}</TableCell>
                 <TableCell align="right">
-                  {editable ? (
+                  {canEditActuals ? (
                     <TextField
                       size="small"
                       type="number"
@@ -257,8 +295,8 @@ export function CountDetailPage() {
 
 function BoxField({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary">
+    <Box sx={{ minWidth: 140, flex: '1 1 140px' }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
         {label}
       </Typography>
       {children ?? <Typography variant="body2">{value}</Typography>}

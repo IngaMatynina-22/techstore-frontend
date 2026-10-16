@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Button, Stack, TextField } from '@mui/material'
+import { Button, IconButton, Stack, TextField } from '@mui/material'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { BoolChip } from '@/components/feedback/StatusChip'
@@ -62,18 +62,18 @@ export function SuppliersPage() {
           </Button>
         }
       />
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           size="small"
           label="Пошук"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && setMany({ search: draft, page: 1 })}
-          sx={{ minWidth: 240 }}
+          sx={{ minWidth: 240, flex: '1 1 200px' }}
         />
-        <Button variant="outlined" onClick={() => setMany({ search: draft, page: 1 })}>
-          Застосувати
-        </Button>
+        <IconButton color="primary" aria-label="Знайти" onClick={() => setMany({ search: draft, page: 1 })}>
+          <Search size={18} />
+        </IconButton>
       </Stack>
       <DataTable
         columns={columns}

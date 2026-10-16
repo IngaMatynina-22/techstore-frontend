@@ -25,6 +25,7 @@ import {
   ShoppingCart,
   Truck,
   RotateCcw,
+  Users,
   BarChart3,
   FileUp,
   Settings,
@@ -34,17 +35,28 @@ import {
   Sun,
   Moon,
 } from 'lucide-react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useThemeMode } from '@/app/ThemeModeContext'
 import { GlobalSearch } from '@/features/search/GlobalSearch'
 import { NotificationCenter } from '@/features/notifications/NotificationCenter'
 
 const drawerWidth = 268
-const collapsedWidth = 76
 
 type NavItem = { label: string; to: string; icon: typeof LayoutDashboard; adminOnly?: boolean }
 type NavGroup = { title: string; items: NavItem[] }
+
+function isNavItemActive(to: string, pathname: string): boolean {
+  if (to === '/') return pathname === '/'
+  if (to === '/inventory') {
+    return (
+      pathname === '/inventory' ||
+      pathname === '/inventory/low-stock' ||
+      pathname === '/inventory/out-of-stock'
+    )
+  }
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
 
 const navGroups: NavGroup[] = [
   { title: 'Огляд', items: [{ label: 'Головна', to: '/', icon: LayoutDashboard }] },
@@ -70,6 +82,7 @@ const navGroups: NavGroup[] = [
     title: 'Операції',
     items: [
       { label: 'Замовлення', to: '/orders', icon: ShoppingCart },
+      { label: 'Клієнти', to: '/customers', icon: Users },
       { label: 'Постачальники', to: '/purchasing/suppliers', icon: Truck },
       { label: 'Закупівлі', to: '/purchasing/purchase-orders', icon: Truck },
       { label: 'Повернення', to: '/returns', icon: RotateCcw },
@@ -87,6 +100,7 @@ const navGroups: NavGroup[] = [
     title: 'Адмін',
     items: [
       { label: 'Налаштування', to: '/admin/settings', icon: Settings },
+      { label: 'Користувачі', to: '/admin/users', icon: Users, adminOnly: true },
       { label: 'Аудит', to: '/admin/audit-logs', icon: Settings, adminOnly: true },
       { label: 'Система', to: '/admin/system', icon: Settings },
     ],
@@ -131,47 +145,36 @@ export function AdminLayout() {
         >
           T
         </Box>
-        {(open || mobile) && (
-          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.03em', flex: 1 }}>
-            TechStore
-          </Typography>
-        )}
+        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.03em', flex: 1 }}>
+          TechStore
+        </Typography>
         {!mobile && (
-          <IconButton size="small" onClick={() => setOpen((v) => !v)}>
-            {open ? <ChevronLeft size={18} /> : <Menu size={18} />}
+          <IconButton size="small" onClick={() => setOpen(false)} aria-label="Згорнути меню">
+            <ChevronLeft size={18} />
           </IconButton>
         )}
       </Toolbar>
 
-      {(open || mobile) && (
-        <Box sx={{ px: 2, pb: 1 }}>
-          <Tooltip title={mode === 'dark' ? 'Світла тема' : 'Темна тема'}>
-            <IconButton
-              onClick={toggle}
-              size="small"
-              sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                width: '100%',
-                justifyContent: 'flex-start',
-                px: 1.5,
-                gap: 1,
-              }}
-            >
-              {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <Typography variant="body2">{mode === 'dark' ? 'Світла тема' : 'Темна тема'}</Typography>
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
-      {!open && !mobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', pb: 1 }}>
-          <IconButton size="small" onClick={toggle}>
+      <Box sx={{ px: 2, pb: 1 }}>
+        <Tooltip title={mode === 'dark' ? 'Світла тема' : 'Темна тема'}>
+          <IconButton
+            onClick={toggle}
+            size="small"
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              width: '100%',
+              justifyContent: 'flex-start',
+              px: 1.5,
+              gap: 1,
+            }}
+          >
             {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <Typography variant="body2">{mode === 'dark' ? 'Світла тема' : 'Темна тема'}</Typography>
           </IconButton>
-        </Box>
-      )}
+        </Tooltip>
+      </Box>
 
       <Divider />
       <Box sx={{ overflow: 'auto', flex: 1, py: 1 }}>
@@ -183,11 +186,9 @@ export function AdminLayout() {
               key={group.title}
               dense
               subheader={
-                open || mobile ? (
-                  <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '28px', fontSize: 11 }}>
-                    {group.title}
-                  </ListSubheader>
-                ) : undefined
+                <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '28px', fontSize: 11 }}>
+                  {group.title}
+                </ListSubheader>
               }
             >
               {items.map((item) => {
@@ -195,25 +196,28 @@ export function AdminLayout() {
                 return (
                   <ListItemButton
                     key={item.to}
-                    component={NavLink}
+                    component={RouterLink}
                     to={item.to}
-                    end={item.to === '/'}
+                    selected={isNavItemActive(item.to, location.pathname)}
                     onClick={() => mobile && setMobileOpen(false)}
                     sx={{
                       mx: 1,
                       borderRadius: 2,
                       mb: 0.25,
-                      '&.active': {
+                      '&.Mui-selected': {
                         bgcolor: 'rgba(255,107,74,0.14)',
                         color: 'primary.main',
                         '& .MuiListItemIcon-root': { color: 'primary.main' },
+                      },
+                      '&.Mui-selected:hover': {
+                        bgcolor: 'rgba(255,107,74,0.2)',
                       },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
                       <Icon size={18} />
                     </ListItemIcon>
-                    {(open || mobile) && <ListItemText primary={item.label} />}
+                    <ListItemText primary={item.label} />
                   </ListItemButton>
                 )
               })}
@@ -228,13 +232,11 @@ export function AdminLayout() {
           <ListItemIcon sx={{ minWidth: 36 }}>
             <LogOut size={18} />
           </ListItemIcon>
-          {(open || mobile) && <ListItemText primary="Вихід" />}
+          <ListItemText primary="Вихід" />
         </ListItemButton>
       </Box>
     </Box>
   )
-
-  const width = open ? drawerWidth : collapsedWidth
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -249,24 +251,24 @@ export function AdminLayout() {
           {drawerContent}
         </Drawer>
       ) : (
-        <Drawer
-          variant="permanent"
-          sx={{
-            width,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width,
-              boxSizing: 'border-box',
-              bgcolor: 'background.paper',
-              borderRight: '1px solid',
-              borderColor: 'divider',
-              transition: 'width 0.2s',
-              overflowX: 'hidden',
-            },
-          }}
-        >
-          {drawerContent}
-        </Drawer>
+        open && (
+          <Drawer
+            variant="permanent"
+            sx={{
+              width: drawerWidth,
+              flexShrink: 0,
+              '& .MuiDrawer-paper': {
+                width: drawerWidth,
+                boxSizing: 'border-box',
+                bgcolor: 'background.paper',
+                borderRight: '1px solid',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            {drawerContent}
+          </Drawer>
+        )
       )}
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -277,38 +279,56 @@ export function AdminLayout() {
           sx={{
             borderBottom: '1px solid',
             borderColor: 'divider',
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(18,18,18,0.85)' : 'rgba(245,245,245,0.9)',
-            backdropFilter: 'blur(10px)',
+            bgcolor: 'background.paper',
           }}
         >
-          <Toolbar sx={{ gap: 2, py: 0.5 }}>
-            {mobile && (
-              <IconButton edge="start" onClick={() => setMobileOpen(true)}>
+          <Toolbar
+            sx={{
+              gap: 2,
+              minHeight: { xs: 64, md: 72 },
+              px: { xs: 2, md: 3 },
+              alignItems: 'center',
+            }}
+          >
+            {(mobile || !open) && (
+              <IconButton
+                edge="start"
+                onClick={() => (mobile ? setMobileOpen(true) : setOpen(true))}
+                aria-label="Відкрити меню"
+              >
                 <Menu size={20} />
               </IconButton>
             )}
-            <Box sx={{ minWidth: 120, display: { xs: 'none', md: 'block' } }}>
-              <Typography variant="caption" color="text.secondary">
+            <Box sx={{ minWidth: 140, flexShrink: 0, display: { xs: 'none', md: 'block' } }}>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block' }}>
                 TechStore
               </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.25, mt: 0.25 }}>
                 {title}
               </Typography>
             </Box>
-            <GlobalSearch />
-            <NotificationCenter />
-            <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
-              <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14 }}>
-                {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
-              </Avatar>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {user?.firstName} {user?.lastName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.roles?.join(', ')}
-                </Typography>
-              </Box>
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+              <GlobalSearch />
+            </Box>
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
+              <NotificationCenter />
+              <Stack
+                direction="row"
+                spacing={1.25}
+                sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}
+              >
+                <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: 15, fontWeight: 700 }}>
+                  {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                </Avatar>
+                <Box sx={{ lineHeight: 1.2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {user?.firstName} {user?.lastName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {user?.roles?.join(', ')}
+                  </Typography>
+                </Box>
+              </Stack>
             </Stack>
           </Toolbar>
         </AppBar>

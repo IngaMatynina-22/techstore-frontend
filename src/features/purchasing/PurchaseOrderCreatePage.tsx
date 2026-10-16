@@ -70,7 +70,7 @@ export function PurchaseOrderCreatePage() {
 
   const { data: suppliersRaw } = useQuery({ queryKey: ['suppliers-all'], queryFn: () => suppliersApi.list({ pageSize: 200 }) })
   const suppliers = useMemo(() => normalizeSuppliers(suppliersRaw), [suppliersRaw])
-  const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: warehousesApi.list })
+  const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: () => warehousesApi.list() })
   const { data: supplierProducts = [] } = useQuery({
     queryKey: ['supplier-products', supplierId],
     queryFn: () => suppliersApi.products(Number(supplierId)),
@@ -85,7 +85,7 @@ export function PurchaseOrderCreatePage() {
         notes: v.notes || undefined,
         items: v.items.map((i) => ({
           variantId: i.variantId,
-          orderedQuantity: i.orderedQuantity,
+          quantity: i.orderedQuantity,
           unitCost: i.unitCost,
         })),
       }),
@@ -107,7 +107,11 @@ export function PurchaseOrderCreatePage() {
       />
       <Paper sx={{ p: 3, maxWidth: 960 }}>
         <Stack component="form" spacing={3} onSubmit={handleSubmit((v) => create.mutate(v))}>
-          <Stack sx={{ flexDirection: { xs: 'column', sm: 'row' } }} spacing={2}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{ flexWrap: 'wrap', alignItems: 'flex-start', width: '100%' }}
+          >
             <Controller
               name="supplierId"
               control={control}
@@ -140,14 +144,23 @@ export function PurchaseOrderCreatePage() {
                 </FormControl>
               )}
             />
-            <TextField size="small" label="Примітки" fullWidth {...register('notes')} />
+            <TextField
+              size="small"
+              label="Примітки"
+              sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
+              {...register('notes')}
+            />
           </Stack>
           <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell>Варіант</TableCell>
-                <TableCell width={100}>К-сть</TableCell>
-                <TableCell width={120}>Ціна</TableCell>
+                <TableCell align="right" width={100}>
+                  К-сть
+                </TableCell>
+                <TableCell align="right" width={120}>
+                  Ціна
+                </TableCell>
                 <TableCell width={48} />
               </TableRow>
             </TableHead>
@@ -160,8 +173,13 @@ export function PurchaseOrderCreatePage() {
                       control={control}
                       render={({ field }) => (
                         <FormControl fullWidth size="small">
-                          <InputLabel>Позиція</InputLabel>
-                          <Select label="Позиція" value={field.value ?? ''} onChange={field.onChange} disabled={!supplierId}>
+                          <InputLabel>Варіант</InputLabel>
+                          <Select
+                            label="Варіант"
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            disabled={!supplierId}
+                          >
                             {supplierProducts.map((p) => (
                               <MenuItem key={p.variantId} value={p.variantId}>
                                 {p.sku} · {p.productName} ({p.supplyPrice} ₴)
@@ -172,11 +190,23 @@ export function PurchaseOrderCreatePage() {
                       )}
                     />
                   </TableCell>
-                  <TableCell>
-                    <TextField size="small" type="number" {...register(`items.${idx}.orderedQuantity`)} />
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      type="number"
+                      fullWidth
+                      {...register(`items.${idx}.orderedQuantity`)}
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    />
                   </TableCell>
-                  <TableCell>
-                    <TextField size="small" type="number" slotProps={{ htmlInput: { step: 0.01 } }} {...register(`items.${idx}.unitCost`)} />
+                  <TableCell align="right">
+                    <TextField
+                      size="small"
+                      type="number"
+                      fullWidth
+                      slotProps={{ htmlInput: { step: 0.01, min: 0 } }}
+                      {...register(`items.${idx}.unitCost`)}
+                    />
                   </TableCell>
                   <TableCell>
                     <IconButton size="small" onClick={() => remove(idx)} disabled={fields.length <= 1}>

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Box, Paper, Tab, Tabs, Typography } from '@mui/material'
+import { useMemo, useState } from 'react'
+import { Box, CircularProgress, Paper, Tab, Tabs, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import {
   Bar,
@@ -22,7 +22,13 @@ function InventorySection({ period: _period }: { period: ReportPeriod }) {
     queryKey: ['reports', 'inventory'],
     queryFn: () => reportsApi.inventory(),
   })
-  if (q.isLoading) return null
+  if (q.isLoading) {
+    return (
+      <Box sx={{ py: 6, textAlign: 'center' }}>
+        <CircularProgress size={28} />
+      </Box>
+    )
+  }
   if (q.error) return <QueryError message={getErrorMessage(q.error)} onRetry={() => void q.refetch()} />
   const d = q.data!
   const stockBars = [
@@ -92,12 +98,18 @@ function InventorySection({ period: _period }: { period: ReportPeriod }) {
 }
 
 function PurchasingSection({ period }: { period: ReportPeriod }) {
-  const range = periodRange(period)
+  const range = useMemo(() => periodRange(period), [period])
   const q = useQuery({
     queryKey: ['reports', 'purchasing', range],
     queryFn: () => reportsApi.purchasing(range),
   })
-  if (q.isLoading) return null
+  if (q.isLoading) {
+    return (
+      <Box sx={{ py: 6, textAlign: 'center' }}>
+        <CircularProgress size={28} />
+      </Box>
+    )
+  }
   if (q.error) return <QueryError message={getErrorMessage(q.error)} onRetry={() => void q.refetch()} />
   const d = q.data!
   const bars = [

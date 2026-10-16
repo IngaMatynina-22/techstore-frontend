@@ -78,12 +78,20 @@ export interface InventoryCountSession {
 }
 
 export const warehousesApi = {
-  list: () => api.get<Warehouse[]>('/api/warehouses').then((r) => r.data),
+  list: (includeInactive = true) =>
+    api.get<Warehouse[]>('/api/warehouses', { params: { includeInactive } }).then((r) => r.data),
   get: (id: number) => api.get<Warehouse>(`/api/warehouses/${id}`).then((r) => r.data),
   create: (body: Record<string, unknown>) => api.post<Warehouse>('/api/warehouses', body).then((r) => r.data),
   update: (id: number, body: Record<string, unknown>) =>
     api.put<Warehouse>(`/api/warehouses/${id}`, body).then((r) => r.data),
-  remove: (id: number) => api.delete(`/api/warehouses/${id}`),
+  deactivate: (id: number) => api.delete(`/api/warehouses/${id}`),
+  activate: (w: Warehouse) =>
+    api.put<Warehouse>(`/api/warehouses/${w.id}`, {
+      name: w.name,
+      code: w.code,
+      address: w.address ?? null,
+      isActive: true,
+    }).then((r) => r.data),
   summary: (id: number) => api.get(`/api/warehouses/${id}/summary`).then((r) => r.data),
   valuation: (id: number) => api.get(`/api/warehouses/${id}/valuation`).then((r) => r.data),
 }

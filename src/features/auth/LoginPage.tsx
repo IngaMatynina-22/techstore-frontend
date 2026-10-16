@@ -28,7 +28,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function LoginPage() {
-  const { user, loading, login, isStaff } = useAuth()
+  const { user, loading, login, isStaff, isCustomer, homePath } = useAuth()
   const { mode } = useThemeMode()
   const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
@@ -43,9 +43,16 @@ export function LoginPage() {
   })
 
   if (!loading && user) {
-    const to = (location.state as { from?: string } | null)?.from ?? '/'
-    if (!isStaff) return <Navigate to="/403" replace />
-    return <Navigate to={to} replace />
+    const from = (location.state as { from?: string } | null)?.from
+    if (isStaff) {
+      const to = from && !from.startsWith('/app') ? from : '/'
+      return <Navigate to={to} replace />
+    }
+    if (isCustomer) {
+      const to = from?.startsWith('/app') ? from : '/app'
+      return <Navigate to={to} replace />
+    }
+    return <Navigate to={homePath} replace />
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -92,7 +99,7 @@ export function LoginPage() {
                 TechStore
               </Typography>
               <Typography color="text.secondary" variant="body2">
-                Адміністративна панель магазину техніки
+                Вхід для персоналу та клієнтів
               </Typography>
             </Box>
           </Box>

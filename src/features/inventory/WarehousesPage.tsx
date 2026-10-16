@@ -12,7 +12,7 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
-import { Plus } from 'lucide-react'
+import { Ban, CheckCircle, Pencil, Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/feedback/PageHeader'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { BoolChip } from '@/components/feedback/StatusChip'
+import { IconAction } from '@/components/actions/IconAction'
 import { getErrorMessage } from '@/api/client'
 import { warehousesApi, type Warehouse } from '@/api/inventory.api'
 
@@ -36,7 +37,6 @@ export function WarehousesPage() {
   const qc = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editRow, setEditRow] = useState<Warehouse | null>(null)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deactivateId, setDeactivateId] = useState<number | null>(null)
 
   const { data = [], isLoading, error, refetch } = useQuery({
@@ -63,9 +63,19 @@ export function WarehousesPage() {
 
   const save = useMutation({
     mutationFn: (values: FormValues) => {
-      const body = { name: values.name, code: values.code, address: values.address || null }
-      if (editRow) return warehousesApi.update(editRow.id, body)
-      return warehousesApi.create(body)
+      if (editRow) {
+        return warehousesApi.update(editRow.id, {
+          name: values.name,
+          code: values.code,
+          address: values.address || null,
+          isActive: editRow.isActive,
+        })
+      }
+      return warehousesApi.create({
+        name: values.name,
+        code: values.code,
+        address: values.address || null,
+      })
     },
     onSuccess: () => {
       enqueueSnackbar(editRow ? 'Склад оновлено' : 'Склад створено', { variant: 'success' })
@@ -76,7 +86,7 @@ export function WarehousesPage() {
   })
 
   const deactivate = useMutation({
-    mutationFn: (id: number) => warehousesApi.update(id, { isActive: false }),
+    mutationFn: (id: number) => warehousesApi.deactivate(id),
     onSuccess: () => {
       enqueueSnackbar('Склад деактивовано', { variant: 'success' })
       setDeactivateId(null)
@@ -85,11 +95,10 @@ export function WarehousesPage() {
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
-  const remove = useMutation({
-    mutationFn: (id: number) => warehousesApi.remove(id),
+  const activate = useMutation({
+    mutationFn: (w: Warehouse) => warehousesApi.activate(w),
     onSuccess: () => {
-      enqueueSnackbar('Склад видалено', { variant: 'success' })
-      setDeleteId(null)
+      enqueueSnackbar('Склад активовано', { variant: 'success' })
       void qc.invalidateQueries({ queryKey: ['warehouses'] })
     },
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
@@ -111,20 +120,26 @@ export function WarehousesPage() {
     {
       id: 'actions',
       label: '',
-      width: 220,
+      width: 100,
       render: (r) => (
-        <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-          <Button size="small" onClick={() => openEdit(r)}>
-            Редагувати
-          </Button>
-          {r.isActive && (
-            <Button size="small" color="warning" onClick={() => setDeactivateId(r.id)}>
-              Деактивувати
-            </Button>
+        <Stack direction="row" spacing={0.25}>
+          <IconAction title="Редагувати" onClick={() => openEdit(r)}>
+            <Pencil size={16} />
+          </IconAction>
+          {r.isActive ? (
+            <IconAction title="Деактивувати" color="warning" onClick={() => setDeactivateId(r.id)}>
+              <Ban size={16} />
+            </IconAction>
+          ) : (
+            <IconAction
+              title="Активувати"
+              color="success"
+              disabled={activate.isPending}
+              onClick={() => activate.mutate(r)}
+            >
+              <CheckCircle size={16} />
+            </IconAction>
           )}
-          <Button size="small" color="error" onClick={() => setDeleteId(r.id)}>
-            Видалити
-          </Button>
         </Stack>
       ),
     },
@@ -196,16 +211,6 @@ export function WarehousesPage() {
         loading={deactivate.isPending}
         onClose={() => setDeactivateId(null)}
         onConfirm={() => deactivateId != null && deactivate.mutate(deactivateId)}
-      />
-      <ConfirmDialog
-        open={deleteId != null}
-        title="Видалити склад?"
-        message="Цю дію неможливо скасувати."
-        confirmLabel="Видалити"
-        danger
-        loading={remove.isPending}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => deleteId != null && remove.mutate(deleteId)}
       />
     </>
   )
