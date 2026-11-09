@@ -5,6 +5,7 @@ export interface ProductListItem {
   id: number
   name: string
   slug: string
+  imageUrl?: string | null
   categoryName: string
   brandName?: string | null
   primarySku?: string | null

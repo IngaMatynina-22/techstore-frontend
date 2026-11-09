@@ -1,6 +1,20 @@
 import { useMemo, useState } from 'react'
-import { Box, CircularProgress, Paper, Tab, Tabs, Typography } from '@mui/material'
-import { useQuery } from '@tanstack/react-query'
+import {
+  Box,
+  Button,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Tab,
+  Tabs,
+  Typography,
+} from '@mui/material'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { enqueueSnackbar } from 'notistack'
 import {
   Bar,
   BarChart,
@@ -13,14 +27,25 @@ import {
 import { PageHeader } from '@/components/feedback/PageHeader'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
-import { reportsApi } from '@/api/admin.api'
+import { exportsApi, reportsApi } from '@/api/admin.api'
+import { warehousesApi } from '@/api/inventory.api'
 import { SalesReportPage } from './SalesReportPage'
 import { PERIOD_LABELS, fmtMoney, fmtNum, periodRange, type ReportPeriod } from './reportUtils'
 
 function InventorySection({ period: _period }: { period: ReportPeriod }) {
+  const [warehouseId, setWarehouseId] = useState('')
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehousesApi.list(false),
+  })
   const q = useQuery({
-    queryKey: ['reports', 'inventory'],
-    queryFn: () => reportsApi.inventory(),
+    queryKey: ['reports', 'inventory', warehouseId],
+    queryFn: () => reportsApi.inventory(warehouseId ? { warehouseId: Number(warehouseId) } : undefined),
+  })
+  const download = useMutation({
+    mutationFn: () => exportsApi.inventory(warehouseId ? Number(warehouseId) : undefined),
+    onSuccess: () => enqueueSnackbar('Звіт завантажено', { variant: 'success' }),
+    onError: (error) => enqueueSnackbar(getErrorMessage(error), { variant: 'error' }),
   })
   if (q.isLoading) {
     return (
@@ -43,6 +68,26 @@ function InventorySection({ period: _period }: { period: ReportPeriod }) {
   ]
   return (
     <Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 220 }}>
+          <InputLabel>Склад у звіті</InputLabel>
+          <Select
+            label="Склад у звіті"
+            value={warehouseId}
+            onChange={(e) => setWarehouseId(e.target.value)}
+          >
+            <MenuItem value="">Усі склади</MenuItem>
+            {warehouses.map((warehouse) => (
+              <MenuItem key={warehouse.id} value={String(warehouse.id)}>
+                {warehouse.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button variant="outlined" disabled={download.isPending} onClick={() => download.mutate()}>
+          {download.isPending ? 'Завантаження…' : 'Завантажити звіт залишків'}
+        </Button>
+      </Stack>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 2 }}>
         {[
           { label: 'SKU', value: fmtNum(d.skuCount) },

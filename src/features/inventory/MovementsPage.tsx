@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   Button,
+  Autocomplete,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,7 +24,7 @@ import { DataTable, type Column } from '@/components/tables/DataTable'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { useUrlState } from '@/hooks/useUrlState'
 import { getErrorMessage, newIdempotencyKey } from '@/api/client'
-import { MOVEMENT_LABELS, movementsApi, warehousesApi, type StockMovement } from '@/api/inventory.api'
+import { MOVEMENT_LABELS, inventoryApi, movementsApi, warehousesApi, type InventoryItem, type StockMovement } from '@/api/inventory.api'
 
 type MovementDialogKind = 'receipt' | 'issue' | 'adjustment' | 'transfer' | null
 
@@ -74,6 +75,18 @@ export function MovementsPage() {
   const { data: warehouses = [] } = useQuery({
     queryKey: ['warehouses'],
     queryFn: () => warehousesApi.list(),
+  })
+  const { data: inventoryOptions = [], error: inventoryOptionsError } = useQuery({
+    queryKey: ['movement-variant-options'],
+    queryFn: async () => {
+      const result = await inventoryApi.list({ page: 1, pageSize: 200 })
+      const variants = new Map<number, InventoryItem>()
+      for (const item of result.items) {
+        if (!variants.has(item.variantId)) variants.set(item.variantId, item)
+      }
+      return [...variants.values()]
+    },
+    enabled: dialog !== null,
   })
 
   const resetForm = () => {
@@ -321,13 +334,21 @@ export function MovementsPage() {
                 </Select>
               </FormControl>
             )}
-            <TextField
-              size="small"
-              label="ID варіанту"
-              type="number"
-              value={formVariantId}
-              onChange={(e) => setFormVariantId(e.target.value)}
-              fullWidth
+            <Autocomplete
+              options={inventoryOptions}
+              value={inventoryOptions.find((item) => String(item.variantId) === formVariantId) ?? null}
+              getOptionLabel={(item) => `${item.sku} · ${item.productName} / ${item.variantName}`}
+              isOptionEqualToValue={(option, value) => option.variantId === value.variantId}
+              onChange={(_, item) => setFormVariantId(item ? String(item.variantId) : '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Товар / варіант"
+                  error={!!inventoryOptionsError}
+                  helperText={inventoryOptionsError ? getErrorMessage(inventoryOptionsError) : undefined}
+                />
+              )}
             />
             <TextField
               size="small"

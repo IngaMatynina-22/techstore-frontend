@@ -48,6 +48,7 @@ import { CustomerReturnCreatePage } from '@/features/customer/CustomerReturnCrea
 import { CustomerCatalogPage } from '@/features/customer/CustomerCatalogPage'
 import { CustomerProductPage } from '@/features/customer/CustomerProductPage'
 import { CustomerCartPage } from '@/features/customer/CustomerCartPage'
+import { ManagerContactPage } from '@/features/customer/ManagerContactPage'
 import { CartProvider } from '@/features/customer/cart'
 
 export function AppRouter() {
@@ -127,6 +128,7 @@ export function AppRouter() {
           <Route path="catalog" element={<CustomerCatalogPage />} />
           <Route path="catalog/:id" element={<CustomerProductPage />} />
           <Route path="cart" element={<CustomerCartPage />} />
+          <Route path="contact" element={<ManagerContactPage />} />
           <Route path="orders" element={<CustomerOrdersPage />} />
           <Route path="orders/:id" element={<CustomerOrderDetailPage />} />
           <Route path="returns" element={<CustomerReturnsPage />} />

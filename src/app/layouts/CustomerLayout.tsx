@@ -1,6 +1,6 @@
 import { Box, Button, Container, Stack, Typography, AppBar, Toolbar, Badge } from '@mui/material'
 import { Link as RouterLink, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LogOut, Package, RotateCcw, ShoppingBag, Home } from 'lucide-react'
+import { LogOut, Package, RotateCcw, ShoppingBag, Home, Phone } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart } from '@/features/customer/cart'
 
@@ -9,6 +9,7 @@ const nav = [
   { to: '/app/catalog', label: 'Каталог', icon: ShoppingBag },
   { to: '/app/orders', label: 'Мої замовлення', icon: Package },
   { to: '/app/returns', label: 'Повернення', icon: RotateCcw },
+  { to: '/app/contact', label: 'Контакти менеджера', icon: Phone },
 ]
 
 export function CustomerLayout() {

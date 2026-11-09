@@ -18,6 +18,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from './AuthContext'
 import { getErrorMessage } from '@/api/client'
 import { useThemeMode } from '@/app/ThemeModeContext'
+import { ManagerContactCard } from '@/features/customer/ManagerContactCard'
 
 const schema = z.object({
   email: z.string().email('Введіть коректний email'),
@@ -138,6 +139,7 @@ export function LoginPage() {
               {isSubmitting ? 'Вхід…' : 'Увійти'}
             </Button>
           </Stack>
+          <ManagerContactCard />
         </Stack>
       </Paper>
     </Box>

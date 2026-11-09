@@ -34,6 +34,7 @@ export function AuditLogsPage() {
   const columns: Column<AuditLog>[] = [
     { id: 'at', label: 'Час', render: (r) => fmtDateTime(r.createdAt) },
     { id: 'user', label: 'Користувач', render: (r) => r.userName ?? (r.userId != null ? `#${r.userId}` : '—') },
+    { id: 'userId', label: 'ID користувача', render: (r) => r.userId ?? '—' },
     { id: 'action', label: 'Дія', render: (r) => r.action ?? '—' },
     { id: 'entity', label: 'Сутність', render: (r) => [r.entityType, r.entityId].filter(Boolean).join(' #') || '—' },
     {

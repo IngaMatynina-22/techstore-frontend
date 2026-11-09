@@ -31,6 +31,7 @@ import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { productsApi, type ProductVariantInput } from '@/api/catalog.api'
+import { catalogImageUrl } from './catalogImageUrl'
 
 const fmt = (n: number) => `${n.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₴`
 
@@ -141,6 +142,14 @@ export function ProductDetailPage() {
       />
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack sx={{ flexDirection: { xs: 'column', md: 'row' } }} spacing={3}>
+          {catalogImageUrl(data.imageUrl) && (
+            <Box
+              component="img"
+              src={catalogImageUrl(data.imageUrl)}
+              alt={data.name}
+              sx={{ width: { xs: '100%', md: 240 }, maxHeight: 240, objectFit: 'contain', bgcolor: 'background.default', p: 1 }}
+            />
+          )}
           <Box sx={{ flex: 1 }}>
             <Typography variant="body2" color="text.secondary">Категорія: {data.categoryName}</Typography>
             <Typography variant="body2" color="text.secondary">Бренд: {data.brandName ?? '—'}</Typography>

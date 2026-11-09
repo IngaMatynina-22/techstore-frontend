@@ -35,7 +35,16 @@ const schema = z.object({
   customerId: z.union([z.coerce.number().positive(), z.literal('')]).optional(),
   deliveryMethod: z.coerce.number().min(0).max(3),
   comment: z.string().optional(),
+  deliveryAddress: z.string().optional(),
+  customerPhone: z.string().optional(),
   items: z.array(z.object({ variantId: z.coerce.number().positive(), quantity: z.coerce.number().int().min(1) })).min(1),
+}).superRefine((values, ctx) => {
+  if (values.deliveryMethod !== 0 && !values.deliveryAddress?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['deliveryAddress'], message: 'Вкажіть адресу доставки' })
+  }
+  if (values.deliveryMethod !== 0 && !values.customerPhone?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['customerPhone'], message: 'Вкажіть контактний телефон' })
+  }
 })
 
 type FormValues = z.infer<typeof schema>
@@ -50,6 +59,8 @@ export function OrderCreatePage() {
       customerId: '',
       deliveryMethod: 0,
       comment: '',
+      deliveryAddress: '',
+      customerPhone: '',
       items: [{ variantId: '' as unknown as number, quantity: 1 }],
     },
   })
@@ -75,6 +86,8 @@ export function OrderCreatePage() {
         customerId: values.customerId ? Number(values.customerId) : undefined,
         deliveryMethod: values.deliveryMethod as DeliveryMethod,
         customerComment: values.comment || undefined,
+        deliveryAddress: values.deliveryAddress?.trim() || undefined,
+        customerPhone: values.customerPhone?.trim() || undefined,
         idempotencyKey,
         items: values.items.map((i) => ({ productVariantId: i.variantId, quantity: i.quantity })),
       }),
@@ -151,6 +164,23 @@ export function OrderCreatePage() {
               )}
             />
             <TextField size="small" label="Коментар" fullWidth sx={{ flex: 1 }} {...register('comment')} />
+            <TextField
+              size="small"
+              label="Адреса доставки / відділення"
+              fullWidth
+              error={!!errors.deliveryAddress}
+              helperText={errors.deliveryAddress?.message}
+              {...register('deliveryAddress')}
+            />
+            <TextField
+              size="small"
+              label="Телефон для доставки"
+              type="tel"
+              fullWidth
+              error={!!errors.customerPhone}
+              helperText={errors.customerPhone?.message}
+              {...register('customerPhone')}
+            />
           </Stack>
           <Table size="small">
             <TableHead>

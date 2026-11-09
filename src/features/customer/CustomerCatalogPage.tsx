@@ -20,25 +20,27 @@ import { PageHeader } from '@/components/feedback/PageHeader'
 import { getErrorMessage } from '@/api/client'
 import { categoriesApi, productsApi } from '@/api/catalog.api'
 import { useUrlState } from '@/hooks/useUrlState'
+import { catalogImageUrl } from '@/features/catalog/catalogImageUrl'
 
 const fmt = (n: number) =>
   `${n.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₴`
 
 export function CustomerCatalogPage() {
-  const { get, page, pageSize, setMany } = useUrlState()
+  const { params, get, page, pageSize, setMany } = useUrlState()
   const search = get('search')
   const categoryId = get('categoryId')
   const [draft, setDraft] = useState(search)
+  const effectivePageSize = params.has('pageSize') ? pageSize : 12
 
   const listParams = useMemo(
     () => ({
       page,
-      pageSize: pageSize || 12,
+      pageSize: effectivePageSize,
       search: search || undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       isActive: true,
     }),
-    [page, pageSize, search, categoryId],
+    [page, effectivePageSize, search, categoryId],
   )
 
   const { data: categories = [] } = useQuery({
@@ -51,7 +53,8 @@ export function CustomerCatalogPage() {
     queryFn: () => productsApi.list(listParams),
   })
 
-  const totalPages = Math.max(1, Math.ceil((data?.totalCount ?? 0) / (listParams.pageSize as number)))
+  const totalPages = data?.totalPages ?? Math.max(1, Math.ceil((data?.totalCount ?? 0) / effectivePageSize))
+  const currentPage = data?.page ?? page
 
   return (
     <>
@@ -100,6 +103,15 @@ export function CustomerCatalogPage() {
         {(data?.items ?? []).map((p) => (
           <Grid key={p.id} size={{ xs: 12, sm: 6, md: 4 }}>
             <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              {catalogImageUrl(p.imageUrl) && (
+                <Box
+                  component="img"
+                  src={catalogImageUrl(p.imageUrl)}
+                  alt={p.name}
+                  loading="lazy"
+                  sx={{ width: '100%', height: 200, objectFit: 'contain', bgcolor: 'background.default', p: 1 }}
+                />
+              )}
               <CardContent sx={{ flex: 1 }}>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 700 }}>
                   {p.name}
@@ -132,17 +144,31 @@ export function CustomerCatalogPage() {
         </Typography>
       )}
 
-      {totalPages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, mt: 3, justifyContent: 'center' }}>
-          <Button disabled={page <= 1} onClick={() => setMany({ page: page - 1 })}>
+      {(data?.totalCount ?? 0) > 0 && (
+        <Box sx={{ display: 'flex', gap: 1, mt: 3, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button disabled={currentPage <= 1} onClick={() => setMany({ page: currentPage - 1 })}>
             Назад
           </Button>
           <Typography variant="body2" sx={{ alignSelf: 'center' }}>
-            {page} / {totalPages}
+            {currentPage} / {totalPages}
           </Typography>
-          <Button disabled={page >= totalPages} onClick={() => setMany({ page: page + 1 })}>
+          <Button disabled={currentPage >= totalPages} onClick={() => setMany({ page: currentPage + 1 })}>
             Далі
           </Button>
+          <FormControl size="small" sx={{ minWidth: 120, ml: 1 }}>
+            <InputLabel>На сторінці</InputLabel>
+            <Select
+              label="На сторінці"
+              value={effectivePageSize}
+              onChange={(e) => setMany({ pageSize: Number(e.target.value), page: 1 })}
+            >
+              {[12, 24, 48].map((size) => (
+                <MenuItem key={size} value={size}>
+                  {size}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
       )}
     </>

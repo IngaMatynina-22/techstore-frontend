@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  Box,
   Button,
   FormControl,
   InputLabel,
@@ -17,6 +18,7 @@ import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { productsApi } from '@/api/catalog.api'
 import { useCart } from '@/features/customer/cart'
+import { catalogImageUrl } from '@/features/catalog/catalogImageUrl'
 
 const fmt = (n: number) =>
   `${n.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₴`
@@ -65,6 +67,14 @@ export function CustomerProductPage() {
       />
       <Paper sx={{ p: 3, maxWidth: 640 }}>
         <Stack spacing={2}>
+          {catalogImageUrl(product.imageUrl) && (
+            <Box
+              component="img"
+              src={catalogImageUrl(product.imageUrl)}
+              alt={product.name}
+              sx={{ width: '100%', maxHeight: 360, objectFit: 'contain', bgcolor: 'background.default', p: 1 }}
+            />
+          )}
           {product.shortDescription && (
             <Typography color="text.secondary">{product.shortDescription}</Typography>
           )}

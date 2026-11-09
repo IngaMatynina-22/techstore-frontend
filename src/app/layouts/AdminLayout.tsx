@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   AppBar,
   Avatar,
+  Badge,
   Box,
   Divider,
   Drawer,
@@ -40,6 +41,10 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useThemeMode } from '@/app/ThemeModeContext'
 import { GlobalSearch } from '@/features/search/GlobalSearch'
 import { NotificationCenter } from '@/features/notifications/NotificationCenter'
+import { useQuery } from '@tanstack/react-query'
+import { ordersApi } from '@/api/orders.api'
+import { returnsApi } from '@/api/returns.api'
+import { getErrorMessage } from '@/api/client'
 
 const drawerWidth = 268
 
@@ -115,6 +120,16 @@ export function AdminLayout() {
   const { user, logout, isAdmin, isStaff } = useAuth()
   const { mode, toggle } = useThemeMode()
   const location = useLocation()
+  const { data: pendingOrders, error: pendingOrdersError } = useQuery({
+    queryKey: ['orders', 'pending-count'],
+    queryFn: () => ordersApi.list({ page: 1, pageSize: 1, statusCode: 'New' }),
+    refetchInterval: 60_000,
+  })
+  const { data: pendingReturns, error: pendingReturnsError } = useQuery({
+    queryKey: ['returns', 'pending-count'],
+    queryFn: () => returnsApi.list({ page: 1, pageSize: 1, status: 0 }),
+    refetchInterval: 60_000,
+  })
 
   const title = useMemo(() => {
     const flat = navGroups.flatMap((g) => g.items)
@@ -193,6 +208,18 @@ export function AdminLayout() {
             >
               {items.map((item) => {
                 const Icon = item.icon
+                const count =
+                  item.to === '/orders'
+                    ? pendingOrders?.totalCount
+                    : item.to === '/returns'
+                      ? pendingReturns?.totalCount
+                      : undefined
+                const countError =
+                  item.to === '/orders'
+                    ? pendingOrdersError
+                    : item.to === '/returns'
+                      ? pendingReturnsError
+                      : undefined
                 return (
                   <ListItemButton
                     key={item.to}
@@ -217,7 +244,18 @@ export function AdminLayout() {
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
                       <Icon size={18} />
                     </ListItemIcon>
-                    <ListItemText primary={item.label} />
+                    <ListItemText
+                      secondary={countError ? getErrorMessage(countError) : undefined}
+                      primary={
+                        count ? (
+                          <Badge badgeContent={count} color="error" max={99}>
+                            {item.label}
+                          </Badge>
+                        ) : (
+                          item.label
+                        )
+                      }
+                    />
                   </ListItemButton>
                 )
               })}

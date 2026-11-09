@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -74,6 +75,9 @@ export function CustomerOrderDetailPage() {
         crumbs={[{ label: 'Мої замовлення', to: '/app/orders' }, { label: order.orderNumber }]}
         actions={
           <Stack direction="row" spacing={1}>
+            <Button className="print-controls" variant="outlined" onClick={() => window.print()}>
+              Друкувати підтвердження
+            </Button>
             {canCancel && (
               <Button color="error" variant="outlined" onClick={() => setCancelOpen(true)}>
                 Скасувати
@@ -91,49 +95,63 @@ export function CustomerOrderDetailPage() {
         }
       />
 
-      <Paper sx={{ p: 3, mb: 2 }}>
-        <Stack spacing={1.5}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Typography color="text.secondary">Статус:</Typography>
-            <StatusChip label={order.statusName} status={order.statusCode} />
-          </Stack>
-          <Typography variant="body2">Створено: {fmtDt(order.createdAt)}</Typography>
-          <Typography variant="body2">Доставка: {DELIVERY[order.deliveryMethod] ?? '—'}</Typography>
-          {order.comment && <Typography variant="body2">Коментар: {order.comment}</Typography>}
-          <Typography sx={{ fontWeight: 700 }}>Разом: {fmt(order.totalAmount)}</Typography>
-        </Stack>
-      </Paper>
-
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
-          Позиції
+      <Box className="printable-order">
+        <Typography variant="h5" sx={{ mb: 2, display: 'none', '@media print': { display: 'block' } }}>
+          Підтвердження замовлення {order.orderNumber}
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Товар</TableCell>
-              <TableCell>SKU</TableCell>
-              <TableCell align="right">К-сть</TableCell>
-              <TableCell align="right">Ціна</TableCell>
-              <TableCell align="right">Сума</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {order.items.map((i) => (
-              <TableRow key={i.id}>
-                <TableCell>
-                  {i.productName}
-                  {i.variantName ? ` · ${i.variantName}` : ''}
-                </TableCell>
-                <TableCell>{i.sku}</TableCell>
-                <TableCell align="right">{i.quantity}</TableCell>
-                <TableCell align="right">{fmt(i.unitPrice)}</TableCell>
-                <TableCell align="right">{fmt(i.subtotal)}</TableCell>
+        <Paper sx={{ p: 3, mb: 2 }}>
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Клієнт: {order.customerName}
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Typography color="text.secondary">Статус:</Typography>
+              <StatusChip label={order.statusName} status={order.statusCode} />
+            </Stack>
+            <Typography variant="body2">Створено: {fmtDt(order.createdAt)}</Typography>
+            <Typography variant="body2">Доставка: {DELIVERY[order.deliveryMethod] ?? '—'}</Typography>
+            {order.deliveryAddress && <Typography variant="body2">Адреса доставки: {order.deliveryAddress}</Typography>}
+            {order.customerPhone && <Typography variant="body2">Телефон: {order.customerPhone}</Typography>}
+            {order.customerEmail && <Typography variant="body2">Email: {order.customerEmail}</Typography>}
+            {order.comment && <Typography variant="body2">Коментар: {order.comment}</Typography>}
+            <Typography variant="body2">Сума: {fmt(order.subtotal)}</Typography>
+            <Typography variant="body2">Знижка: {fmt(order.discountAmount)}</Typography>
+            <Typography variant="body2">Доставка: {fmt(order.deliveryCost)}</Typography>
+            <Typography sx={{ fontWeight: 700 }}>Разом: {fmt(order.totalAmount)}</Typography>
+          </Stack>
+        </Paper>
+
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 700 }}>
+            Позиції
+          </Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Товар</TableCell>
+                <TableCell>SKU</TableCell>
+                <TableCell align="right">К-сть</TableCell>
+                <TableCell align="right">Ціна</TableCell>
+                <TableCell align="right">Сума</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+            </TableHead>
+            <TableBody>
+              {order.items.map((i) => (
+                <TableRow key={i.id}>
+                  <TableCell>
+                    {i.productName}
+                    {i.variantName ? ` · ${i.variantName}` : ''}
+                  </TableCell>
+                  <TableCell>{i.sku}</TableCell>
+                  <TableCell align="right">{i.quantity}</TableCell>
+                  <TableCell align="right">{fmt(i.unitPrice)}</TableCell>
+                  <TableCell align="right">{fmt(i.subtotal)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      </Box>
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Скасувати замовлення?</DialogTitle>

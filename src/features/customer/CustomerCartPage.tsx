@@ -45,6 +45,8 @@ export function CustomerCartPage() {
   const [warehouseId, setWarehouseId] = useState<number | ''>('')
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(1)
   const [comment, setComment] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
   const [autoPicked, setAutoPicked] = useState(false)
 
   const { data: warehouses = [] } = useQuery({
@@ -120,12 +122,20 @@ export function CustomerCartPage() {
     mutationFn: () => {
       if (!effectiveWarehouseId) throw new Error('Оберіть склад')
       if (items.length === 0) throw new Error('Кошик порожній')
+      if (deliveryMethod !== 0 && !deliveryAddress.trim()) {
+        throw new Error('Вкажіть адресу доставки')
+      }
+      if (deliveryMethod !== 0 && !customerPhone.trim()) {
+        throw new Error('Вкажіть контактний номер телефону')
+      }
       if (!stockOk) {
         throw new Error('Недостатньо залишку на обраному складі. Оберіть інший склад або зменшіть кількість.')
       }
       return ordersApi.create({
         warehouseId: Number(effectiveWarehouseId),
         deliveryMethod,
+        deliveryAddress: deliveryAddress.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
         customerComment: comment || undefined,
         idempotencyKey,
         items: items.map((i) => ({
@@ -266,6 +276,23 @@ export function CustomerCartPage() {
                   ))}
                 </Select>
               </FormControl>
+              {deliveryMethod !== 0 && (
+                <>
+                  <TextField
+                    label="Адреса доставки / відділення"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    required
+                  />
+                  <TextField
+                    label="Контактний телефон"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    required
+                  />
+                </>
+              )}
               <TextField
                 label="Коментар до замовлення"
                 multiline
