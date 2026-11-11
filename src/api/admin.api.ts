@@ -96,6 +96,15 @@ export const importsApi = {
       })
       .then((r) => r.data)
   },
+  inventory: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api
+      .post<ImportBatch>('/api/imports/inventory', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
   get: (batchId: number) => api.get<ImportBatch>(`/api/imports/${batchId}`).then((r) => r.data),
 }
 

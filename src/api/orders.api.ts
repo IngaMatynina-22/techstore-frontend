@@ -9,7 +9,7 @@ export interface OrderSummary {
   statusId: number
   statusCode: string
   statusName: string
-  warehouseId: number
+  warehouseId: number | null
   totalAmount: number
   hasActiveReservation: boolean
   createdAt: string
@@ -63,6 +63,8 @@ export const ordersApi = {
   history: (id: number) =>
     api.get<OrderStatusHistory[]>(`/api/orders/${id}/history`).then((r) => r.data),
   create: (body: Record<string, unknown>) => api.post<OrderDetails>('/api/orders', body).then((r) => r.data),
+  assignWarehouse: (id: number, warehouseId: number) =>
+    api.post<OrderDetails>(`/api/orders/${id}/warehouse`, { warehouseId }).then((r) => r.data),
   confirm: (id: number) => api.post(`/api/orders/${id}/confirm`),
   startProcessing: (id: number) => api.post(`/api/orders/${id}/start-processing`),
   complete: (id: number) => api.post(`/api/orders/${id}/complete`),

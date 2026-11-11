@@ -10,10 +10,12 @@ import {
   Paper,
   Select,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { enqueueSnackbar } from 'notistack'
 import { Upload } from 'lucide-react'
 import { PageHeader } from '@/components/feedback/PageHeader'
@@ -31,52 +33,125 @@ const MODES: { value: CatalogImportMode; label: string }[] = [
 ]
 
 export function ImportPage() {
+  const qc = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
   const [mode, setMode] = useState<CatalogImportMode>(0)
   const [result, setResult] = useState<ImportBatch | null>(null)
+  const [importType, setImportType] = useState<'catalog' | 'inventory'>('catalog')
 
   const upload = useMutation({
-    mutationFn: () => {
+    mutationFn: (type: 'catalog' | 'inventory') => {
       if (!file) throw new Error('Оберіть файл')
-      return importsApi.catalog(file, mode)
+      return type === 'catalog' ? importsApi.catalog(file, mode) : importsApi.inventory(file)
     },
-    onSuccess: (batch) => {
+    onSuccess: (batch, type) => {
       setResult(batch)
-      enqueueSnackbar('Імпорт завершено', { variant: 'success' })
+      const queryKeys =
+        type === 'inventory'
+          ? [
+              ['inventory'],
+              ['stock-movements'],
+              ['reports', 'inventory'],
+              ['products'],
+              ['product'],
+              ['customer-products'],
+              ['customer-product'],
+            ]
+          : [['products'], ['product'], ['categories'], ['brands'], ['customer-products'], ['customer-product'], ['customer-categories']]
+      queryKeys.forEach((queryKey) => void qc.invalidateQueries({ queryKey }))
+      enqueueSnackbar(
+        batch.failedRows > 0 ? 'Імпорт завершено з помилками в окремих рядках' : 'Імпорт завершено',
+        { variant: batch.failedRows > 0 ? 'warning' : 'success' },
+      )
     },
     onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
+  const downloadInventoryTemplate = () => {
+    const headers = 'Sku,WarehouseCode,QuantityOnHand,ProductName,VariantName,CategorySlug,BrandName,PurchasePrice,SellingPrice,Barcode,IsActive'
+    const blob = new Blob([`\uFEFF${headers}\r\n`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'supplier-inventory-template.csv'
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+
   return (
     <>
-      <PageHeader title="Імпорт каталогу" description="Завантаження CSV/XLSX з товарами" />
+      <PageHeader
+        title={importType === 'catalog' ? 'Імпорт каталогу' : 'Імпорт залишків постачальника'}
+        description={importType === 'catalog' ? 'Завантаження CSV з товарами' : 'Оновлення залишків і даних товарів із CSV'}
+      />
       <Paper sx={{ p: 3, maxWidth: 560 }}>
         <Stack spacing={2}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Режим</InputLabel>
-            <Select label="Режим" value={mode} onChange={(e) => setMode(Number(e.target.value) as CatalogImportMode)}>
-              {MODES.map((m) => (
-                <MenuItem key={m.value} value={m.value}>
-                  {m.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Tabs
+            value={importType}
+            onChange={(_, value) => {
+              setImportType(value)
+              setFile(null)
+              setResult(null)
+            }}
+            variant="fullWidth"
+          >
+            <Tab value="catalog" label="Каталог" disabled={upload.isPending} />
+            <Tab value="inventory" label="Залишки постачальника" disabled={upload.isPending} />
+          </Tabs>
+          {importType === 'catalog' ? (
+            <FormControl fullWidth size="small">
+              <InputLabel>Режим</InputLabel>
+              <Select label="Режим" value={mode} onChange={(e) => setMode(Number(e.target.value) as CatalogImportMode)}>
+                {MODES.map((m) => (
+                  <MenuItem key={m.value} value={m.value}>
+                    {m.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <Stack spacing={1}>
+              <Typography variant="body2">
+                Обовʼязкові колонки: <strong>Sku, WarehouseCode, QuantityOnHand</strong>. SKU має відповідати
+                наявному товару, а WarehouseCode — коду активного складу.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                За наявності можна також передати ProductName, VariantName, CategorySlug, BrandName,
+                PurchasePrice, SellingPrice, Barcode, IsActive. Порожні значення не змінюють каталог;
+                кількість у файлі встановлюється як фактичний залишок і не може бути меншою за резерв.
+              </Typography>
+              <Typography variant="caption" sx={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+                Sku,WarehouseCode,QuantityOnHand,ProductName,VariantName,CategorySlug,BrandName,PurchasePrice,SellingPrice,Barcode,IsActive
+              </Typography>
+              <Button size="small" variant="text" onClick={downloadInventoryTemplate} sx={{ alignSelf: 'flex-start' }}>
+                Завантажити шаблон CSV
+              </Button>
+            </Stack>
+          )}
           <Button variant="outlined" component="label" startIcon={<Upload size={16} />}>
             {file ? file.name : 'Обрати файл'}
             <input
               type="file"
               hidden
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null)
                 setResult(null)
               }}
             />
           </Button>
-          <Button variant="contained" disabled={!file || upload.isPending} onClick={() => upload.mutate()}>
+          <Button
+            variant="contained"
+            disabled={!file || upload.isPending}
+            onClick={() => upload.mutate(importType)}
+          >
             {upload.isPending ? 'Обробка…' : 'Завантажити'}
           </Button>
+          {importType === 'inventory' && (
+            <Typography variant="caption" color="text.secondary">
+              CSV, до 2 МБ та 5 000 рядків. Імпорт створює рух коригування для кожної зміненої позиції.
+            </Typography>
+          )}
         </Stack>
       </Paper>
 

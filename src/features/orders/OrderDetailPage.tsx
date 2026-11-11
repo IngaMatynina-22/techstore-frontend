@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -9,7 +10,11 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -30,6 +35,8 @@ import { IconAction } from '@/components/actions/IconAction'
 import { QueryError } from '@/components/feedback/EmptyState'
 import { getErrorMessage } from '@/api/client'
 import { ordersApi } from '@/api/orders.api'
+import { warehousesApi } from '@/api/inventory.api'
+import { useAuth } from '@/features/auth/AuthContext'
 
 const fmt = (n: number) =>
   `${n.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₴`
@@ -49,8 +56,10 @@ export function OrderDetailPage() {
   const orderId = Number(id)
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { isStaff } = useAuth()
   const [action, setAction] = useState<Action | null>(null)
   const [cancelComment, setCancelComment] = useState('')
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('')
 
   const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['order', orderId],
@@ -61,6 +70,29 @@ export function OrderDetailPage() {
     queryKey: ['order-history', orderId],
     queryFn: () => ordersApi.history(orderId),
     enabled: Number.isFinite(orderId),
+  })
+  const {
+    data: warehouses = [],
+    isLoading: warehousesLoading,
+    error: warehousesError,
+    refetch: refetchWarehouses,
+  } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehousesApi.list(false),
+    enabled: isStaff,
+  })
+  const activeWarehouses = warehouses.filter((warehouse) => warehouse.isActive)
+
+  const assignWarehouse = useMutation({
+    mutationFn: () => ordersApi.assignWarehouse(orderId, Number(selectedWarehouseId)),
+    onSuccess: () => {
+      enqueueSnackbar('Склад призначено, товар зарезервовано', { variant: 'success' })
+      setSelectedWarehouseId('')
+      void qc.invalidateQueries({ queryKey: ['order', orderId] })
+      void qc.invalidateQueries({ queryKey: ['order-history', orderId] })
+      void qc.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: (e) => enqueueSnackbar(getErrorMessage(e), { variant: 'error' }),
   })
 
   const mutate = useMutation({
@@ -87,7 +119,8 @@ export function OrderDetailPage() {
 
   const cancelled = order.statusCode === 'Cancelled'
   const completed = order.statusCode === 'Completed'
-  const canConfirm = order.statusCode === 'New'
+  const canConfirm = order.statusCode === 'New' && order.warehouseId != null && order.hasActiveReservation
+  const canAssignWarehouse = isStaff && order.statusCode === 'New' && order.warehouseId == null
   const canStart = order.statusCode === 'Confirmed'
   const canComplete = ['Processing', 'ReadyForShipment', 'Shipped', 'Delivered'].includes(order.statusCode)
   const canCancel = !cancelled && !completed
@@ -211,7 +244,58 @@ export function OrderDetailPage() {
                 Деталі
               </Typography>
               <Stack spacing={1}>
-                <Typography variant="body2">Склад: #{order.warehouseId}</Typography>
+                {canAssignWarehouse && (
+                  <Stack spacing={1}>
+                    <Typography variant="body2" color="text.secondary">
+                      Оберіть склад для комплектації замовлення. Після призначення товар буде зарезервовано.
+                    </Typography>
+                    {warehousesError ? (
+                      <Alert
+                        severity="error"
+                        action={
+                          <Button color="inherit" size="small" onClick={() => void refetchWarehouses()}>
+                            Повторити
+                          </Button>
+                        }
+                      >
+                        Не вдалося завантажити список складів.
+                      </Alert>
+                    ) : warehousesLoading ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Завантаження складів…
+                      </Typography>
+                    ) : activeWarehouses.length === 0 ? (
+                      <Alert severity="warning">Немає активних складів для призначення.</Alert>
+                    ) : (
+                      <>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Склад відправлення</InputLabel>
+                          <Select
+                            label="Склад відправлення"
+                            value={selectedWarehouseId}
+                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                          >
+                            {activeWarehouses.map((warehouse) => (
+                              <MenuItem key={warehouse.id} value={String(warehouse.id)}>
+                                {warehouse.name} · {warehouse.code}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Button
+                          variant="contained"
+                          disabled={!selectedWarehouseId || assignWarehouse.isPending}
+                          onClick={() => assignWarehouse.mutate()}
+                        >
+                          {assignWarehouse.isPending ? 'Призначення…' : 'Призначити склад'}
+                        </Button>
+                      </>
+                    )}
+                  </Stack>
+                )}
+                <Typography variant="body2">
+                  Склад: {order.warehouseId == null ? 'Ще не призначено' : `#${order.warehouseId}`}
+                </Typography>
                 <Typography variant="body2">Доставка: {DELIVERY[order.deliveryMethod] ?? order.deliveryMethod}</Typography>
                 {order.deliveryAddress && <Typography variant="body2">Адреса: {order.deliveryAddress}</Typography>}
                 {order.customerEmail && <Typography variant="body2">Email: {order.customerEmail}</Typography>}
