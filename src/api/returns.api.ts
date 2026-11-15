@@ -8,7 +8,7 @@ export interface ReturnSummary {
   orderNumber: string
   customerId: number
   customerName: string
-  warehouseId: number
+  warehouseId: number | null
   status: ReturnRequestStatus
   inventoryApplied: boolean
   itemCount: number
@@ -22,6 +22,7 @@ export interface ReturnSummary {
 export interface ReturnItem {
   id: number
   orderItemId: number
+  warehouseId: number
   variantId?: number | null
   skuSnapshot: string
   productNameSnapshot: string

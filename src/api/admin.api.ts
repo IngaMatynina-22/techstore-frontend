@@ -57,6 +57,15 @@ export interface ImportBatch {
   rows: ImportRowResult[]
 }
 
+export interface SupplierDataImportResult {
+  fileName: string
+  totalRows: number
+  createdSuppliers: number
+  updatedSuppliers: number
+  upsertedProducts: number
+  rows: { rowNumber: number; status: string; errorMessage?: string | null }[]
+}
+
 export interface SettingDto {
   key: string
   value?: string | null
@@ -105,11 +114,21 @@ export const importsApi = {
       })
       .then((r) => r.data)
   },
+  suppliers: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api
+      .post<SupplierDataImportResult>('/api/imports/suppliers', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
   get: (batchId: number) => api.get<ImportBatch>(`/api/imports/${batchId}`).then((r) => r.data),
 }
 
 export const exportsApi = {
   products: () => downloadFile('/api/exports/products'),
+  suppliers: () => downloadFile('/api/exports/suppliers'),
   inventory: (warehouseId?: number) =>
     downloadFile('/api/exports/inventory', warehouseId ? { warehouseId } : undefined),
   orders: (fromUtc?: string, toUtc?: string) =>

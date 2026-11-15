@@ -59,7 +59,7 @@ export function OrderDetailPage() {
   const { isStaff } = useAuth()
   const [action, setAction] = useState<Action | null>(null)
   const [cancelComment, setCancelComment] = useState('')
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState('')
+  const [selectedWarehouses, setSelectedWarehouses] = useState<Record<number, string>>({})
 
   const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['order', orderId],
@@ -83,11 +83,18 @@ export function OrderDetailPage() {
   })
   const activeWarehouses = warehouses.filter((warehouse) => warehouse.isActive)
 
-  const assignWarehouse = useMutation({
-    mutationFn: () => ordersApi.assignWarehouse(orderId, Number(selectedWarehouseId)),
+  const assignWarehouses = useMutation({
+    mutationFn: () =>
+      ordersApi.assignWarehouses(
+        orderId,
+        order!.items.map((item) => ({
+          orderItemId: item.id,
+          warehouseId: Number(selectedWarehouses[item.id]),
+        })),
+      ),
     onSuccess: () => {
-      enqueueSnackbar('Склад призначено, товар зарезервовано', { variant: 'success' })
-      setSelectedWarehouseId('')
+      enqueueSnackbar('Склади призначено, товари зарезервовано', { variant: 'success' })
+      setSelectedWarehouses({})
       void qc.invalidateQueries({ queryKey: ['order', orderId] })
       void qc.invalidateQueries({ queryKey: ['order-history', orderId] })
       void qc.invalidateQueries({ queryKey: ['orders'] })
@@ -119,8 +126,19 @@ export function OrderDetailPage() {
 
   const cancelled = order.statusCode === 'Cancelled'
   const completed = order.statusCode === 'Completed'
-  const canConfirm = order.statusCode === 'New' && order.warehouseId != null && order.hasActiveReservation
-  const canAssignWarehouse = isStaff && order.statusCode === 'New' && order.warehouseId == null
+  const canConfirm = order.statusCode === 'New' && order.hasActiveReservation
+  const canAssignWarehouse =
+    isStaff &&
+    order.statusCode === 'New' &&
+    !order.hasActiveReservation &&
+    order.items.every((item) => item.warehouseId == null)
+  const hasAllSelectedWarehouses = order.items.every((item) => Number(selectedWarehouses[item.id]) > 0)
+  const assignedWarehouseNames = [...new Set(
+    order.items.map((item) => item.warehouseName).filter((name): name is string => !!name),
+  )]
+  const warehouseSummary = assignedWarehouseNames.length > 1
+    ? 'Різні склади'
+    : assignedWarehouseNames[0] ?? (order.warehouseId == null ? 'Ще не призначено' : `#${order.warehouseId}`)
   const canStart = order.statusCode === 'Confirmed'
   const canComplete = ['Processing', 'ReadyForShipment', 'Shipped', 'Delivered'].includes(order.statusCode)
   const canCancel = !cancelled && !completed
@@ -182,6 +200,7 @@ export function OrderDetailPage() {
                   <TableRow>
                     <TableCell>Товар</TableCell>
                     <TableCell>SKU</TableCell>
+                    <TableCell>Склад відправлення</TableCell>
                     <TableCell align="right">К-сть</TableCell>
                     <TableCell align="right">Ціна</TableCell>
                     <TableCell align="right">Сума</TableCell>
@@ -195,6 +214,33 @@ export function OrderDetailPage() {
                         {i.variantName ? ` · ${i.variantName}` : ''}
                       </TableCell>
                       <TableCell>{i.sku}</TableCell>
+                      <TableCell>
+                        {canAssignWarehouse ? (
+                          <FormControl size="small" fullWidth>
+                            <InputLabel>Склад</InputLabel>
+                            <Select
+                              label="Склад"
+                              value={selectedWarehouses[i.id] ?? ''}
+                              onChange={(event) =>
+                                setSelectedWarehouses((previous) => ({
+                                  ...previous,
+                                  [i.id]: event.target.value,
+                                }))
+                              }
+                            >
+                              {activeWarehouses.map((warehouse) => (
+                                <MenuItem key={warehouse.id} value={String(warehouse.id)}>
+                                  {warehouse.name} · {warehouse.code}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          i.warehouseName
+                            ? `${i.warehouseName}${i.warehouseCode ? ` · ${i.warehouseCode}` : ''}`
+                            : 'Не призначено'
+                        )}
+                      </TableCell>
                       <TableCell align="right">{i.quantity}</TableCell>
                       <TableCell align="right">{fmt(i.unitPrice)}</TableCell>
                       <TableCell align="right">{fmt(i.subtotal)}</TableCell>
@@ -247,7 +293,7 @@ export function OrderDetailPage() {
                 {canAssignWarehouse && (
                   <Stack spacing={1}>
                     <Typography variant="body2" color="text.secondary">
-                      Оберіть склад для комплектації замовлення. Після призначення товар буде зарезервовано.
+                      Оберіть склад для кожної позиції. Після призначення товари буде зарезервовано окремо на відповідних складах.
                     </Typography>
                     {warehousesError ? (
                       <Alert
@@ -267,34 +313,18 @@ export function OrderDetailPage() {
                     ) : activeWarehouses.length === 0 ? (
                       <Alert severity="warning">Немає активних складів для призначення.</Alert>
                     ) : (
-                      <>
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Склад відправлення</InputLabel>
-                          <Select
-                            label="Склад відправлення"
-                            value={selectedWarehouseId}
-                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                          >
-                            {activeWarehouses.map((warehouse) => (
-                              <MenuItem key={warehouse.id} value={String(warehouse.id)}>
-                                {warehouse.name} · {warehouse.code}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <Button
-                          variant="contained"
-                          disabled={!selectedWarehouseId || assignWarehouse.isPending}
-                          onClick={() => assignWarehouse.mutate()}
-                        >
-                          {assignWarehouse.isPending ? 'Призначення…' : 'Призначити склад'}
-                        </Button>
-                      </>
+                      <Button
+                        variant="contained"
+                        disabled={!hasAllSelectedWarehouses || assignWarehouses.isPending}
+                        onClick={() => assignWarehouses.mutate()}
+                      >
+                        {assignWarehouses.isPending ? 'Резервування…' : 'Призначити склади й зарезервувати'}
+                      </Button>
                     )}
                   </Stack>
                 )}
                 <Typography variant="body2">
-                  Склад: {order.warehouseId == null ? 'Ще не призначено' : `#${order.warehouseId}`}
+                  Склад: {warehouseSummary}
                 </Typography>
                 <Typography variant="body2">Доставка: {DELIVERY[order.deliveryMethod] ?? order.deliveryMethod}</Typography>
                 {order.deliveryAddress && <Typography variant="body2">Адреса: {order.deliveryAddress}</Typography>}

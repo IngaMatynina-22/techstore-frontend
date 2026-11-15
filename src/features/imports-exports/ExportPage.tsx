@@ -25,8 +25,9 @@ export function ExportPage() {
   const { data: warehouses = [] } = useQuery({ queryKey: ['warehouses'], queryFn: () => warehousesApi.list() })
 
   const run = useMutation({
-    mutationFn: async (kind: 'products' | 'inventory' | 'orders') => {
+    mutationFn: async (kind: 'products' | 'suppliers' | 'inventory' | 'orders') => {
       if (kind === 'products') return exportsApi.products()
+      if (kind === 'suppliers') return exportsApi.suppliers()
       if (kind === 'inventory') {
         return exportsApi.inventory(warehouseId ? Number(warehouseId) : undefined)
       }
@@ -48,6 +49,14 @@ export function ExportPage() {
             onClick={() => run.mutate('products')}
           >
             Товари
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download size={16} />}
+            disabled={run.isPending}
+            onClick={() => run.mutate('suppliers')}
+          >
+            Постачальники та їхні товари
           </Button>
           <FormControl size="small" fullWidth>
             <InputLabel>Склад (необовʼязково)</InputLabel>

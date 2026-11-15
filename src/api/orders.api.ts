@@ -28,6 +28,9 @@ export interface OrderItem {
   unitPrice: number
   discountAmount: number
   subtotal: number
+  warehouseId?: number | null
+  warehouseName?: string | null
+  warehouseCode?: string | null
 }
 
 export interface OrderDetails extends OrderSummary {
@@ -65,6 +68,8 @@ export const ordersApi = {
   create: (body: Record<string, unknown>) => api.post<OrderDetails>('/api/orders', body).then((r) => r.data),
   assignWarehouse: (id: number, warehouseId: number) =>
     api.post<OrderDetails>(`/api/orders/${id}/warehouse`, { warehouseId }).then((r) => r.data),
+  assignWarehouses: (id: number, items: { orderItemId: number; warehouseId: number }[]) =>
+    api.post<OrderDetails>(`/api/orders/${id}/warehouses`, { items }).then((r) => r.data),
   confirm: (id: number) => api.post(`/api/orders/${id}/confirm`),
   startProcessing: (id: number) => api.post(`/api/orders/${id}/start-processing`),
   complete: (id: number) => api.post(`/api/orders/${id}/complete`),
